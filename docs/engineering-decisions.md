@@ -84,7 +84,24 @@
 
 ---
 
-## ADR-006: Decisions Requiring User Approval
+---
+
+### ADR-007: Frontend Modularization, Evidence Citations & Windows Daemon Orchestration
+
+- **Context:** `web/app/page.tsx` was a monolithic 949-line file containing all 6 dashboard tabs, with 5 reported `any` annotations, unused icon imports, and inert evidence citations. Additionally, cross-platform Windows startup required synchronized health probing for Django and Next.js.
+- **Decision:**
+  - **Modular Tab Extraction:** Decompose dashboard into 6 standalone components in `web/components/tabs/` (`CommandCenterTab`, `ExplorerTab`, `InvestigationTab`, `GraphTab`, `ImpactTab`, `EvaluationTab`) and 2 layout components (`Sidebar`, `Header`).
+  - **Zero-`any` Discipline:** Create `web/lib/types.ts` mirroring DRF serializers and API models. Replace all `any` with precise domain interfaces (`TabId`, `EvidenceTabId`, `HealthStatus`, `ValidationResponse`, `SymbolItem`, `EvidenceItem`, `InvestigationResult`, `FlowGraph`, `ImpactReport`, `EvaluationSummary`).
+  - **Interactive Evidence Citations:** Implement citation badge parsing and auto-scrolling with visual focus highlighting, matching citations (`[c4b12a8]`, `[test_charge]`, `[INC-8821]`) to corresponding evidence receipts without inventing mappings.
+  - **Windows Orchestration (`start_archon.ps1` & `.bat`):** Automate prerequisite validation, port conflict detection on 8000 and 3000 via loopback socket probes, process spawning with log isolation, and bounded HTTP/REST health probes with graceful fallback handling.
+- **Alternatives Considered:**
+  - Heavy state management library (Zustand/Redux): Rejected as premature; typed callback props cleanly handle workspace interactions across leaf components.
+  - Direct shell-based command string execution in Windows batch: Rejected due to fragile error propagation; delegated to clean PowerShell with `-UseBasicParsing` and error code preservation.
+- **Consequences:** ESLint passes with 0 errors and 0 warnings, Next.js production build exits code 0, page controller reduced from 949 to under 280 lines, and deterministic one-click startup on Windows.
+
+---
+
+## ADR-008: Decisions Requiring User Approval
 
 The following architectural choices are documented and ready for execution, pending user confirmation:
 
@@ -94,6 +111,4 @@ The following architectural choices are documented and ready for execution, pend
 2. **Multi-Language AST Support:**
    - *Current State:* Native Python `ast.parse` static extractor.
    - *Decision for User:* Approve adoption of `tree-sitter` for JavaScript/TypeScript and Go extraction in Milestone 3.
-3. **Frontend Production Build Integration:**
-   - *Current State:* Running Next.js development server (`task-316`).
-   - *Decision for User:* Approve resolving the 5 `any` type annotations in `web/app/page.tsx` during standard development workflow.
+

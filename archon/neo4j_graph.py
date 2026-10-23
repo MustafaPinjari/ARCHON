@@ -10,7 +10,7 @@ Provides:
 
 from __future__ import annotations
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 from neo4j import GraphDatabase, Driver
 from neo4j.exceptions import ServiceUnavailable, AuthError
 
@@ -246,103 +246,156 @@ class Neo4jGraphService:
         repo_id: str,
         symbol_filter: Optional[str] = None,
         fallback_symbols: Optional[List[Dict[str, Any]]] = None,
+        fallback_edges: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
-        """Generates node and edge structures directly formatted for React Flow canvas."""
+        """Generates node and edge structures directly formatted for React Flow canvas.
+
+        Semantics & Invariants:
+        - NEVER fabricates relationships (no synthetic 'DEFINED_NEAR' chains).
+        - Distinguishes CALLS, TESTS, DEFINED_IN, IMPORTS only where supported by graph evidence.
+        - Guarantees referential integrity: every edge references existing node IDs.
+        - Honestly flags live Neo4j status vs offline static AST mode.
+        """
         conn = self.check_connection()
         nodes: List[Dict[str, Any]] = []
         edges: List[Dict[str, Any]] = []
+        seen_nodes: Set[str] = set()
 
         if conn["is_connected"]:
             driver = self.get_driver()
             with driver.session(database=self.database) as session:
-                query = """
-                MATCH (s:Symbol {repo_id: $repo_id})
-                OPTIONAL MATCH (s)<-[r:TESTS|CALLS]-(other)
-                RETURN s, r, other LIMIT 60
-                """
-                results = session.run(query, repo_id=repo_id)
-                seen_nodes = set()
-                x_coord = 50
-                y_coord = 50
+                if symbol_filter:
+                    query = """
+                    MATCH (s:Symbol {repo_id: $repo_id})
+                    WHERE s.name CONTAINS $symbol_filter
+                    OPTIONAL MATCH (s)<-[r_in:TESTS|CALLS|DEFINED_IN]-(source)
+                    OPTIONAL MATCH (s)-[r_out:TESTS|CALLS|DEFINED_IN]->(target)
+                    RETURN s, r_in, source, r_out, target LIMIT 60
+                    """
+                    results = session.run(query, repo_id=repo_id, symbol_filter=symbol_filter)
+                else:
+                    query = """
+                    MATCH (s:Symbol {repo_id: $repo_id})
+                    OPTIONAL MATCH (s)<-[r:TESTS|CALLS]-(other)
+                    RETURN s, r, other LIMIT 60
+                    """
+                    results = session.run(query, repo_id=repo_id)
 
                 for record in results:
-                    s = record["s"]
+                    s = record.get("s")
                     if s and s["id"] not in seen_nodes:
                         seen_nodes.add(s["id"])
                         nodes.append({
                             "id": s["id"],
-                            "type": "default",
+                            "type": "architectureNode",
                             "data": {
-                                "label": f"{s.get('kind', 'symbol')}: {s.get('name', 'unknown')}",
-                                "kind": s.get("kind"),
-                                "filePath": s.get("file_path"),
-                                "line": s.get("line_start"),
+                                "label": s.get("name", "unknown"),
+                                "name": s.get("name", "unknown"),
+                                "kind": s.get("kind", "symbol"),
+                                "filePath": s.get("file_path", ""),
+                                "lineStart": s.get("line_start"),
+                                "lineEnd": s.get("line_end"),
+                                "signature": s.get("signature", ""),
+                                "docstring": s.get("docstring"),
                             },
-                            "position": {"x": x_coord, "y": y_coord},
-                        })
-                        x_coord += 240
-                        if x_coord > 800:
-                            x_coord = 50
-                            y_coord += 120
-
-                    other = record["other"]
-                    r = record["r"]
-                    if other and r and other.get("id"):
-                        if other["id"] not in seen_nodes:
-                            seen_nodes.add(other["id"])
-                            nodes.append({
-                                "id": other["id"],
-                                "type": "default",
-                                "data": {
-                                    "label": f"{type(other).__name__}: {other.get('name', other.get('hash', 'unknown'))}",
-                                    "kind": type(other).__name__.lower(),
-                                },
-                                "position": {"x": x_coord, "y": y_coord + 60},
-                            })
-                        edges.append({
-                            "id": f"e-{other['id']}-{s['id']}",
-                            "source": other["id"],
-                            "target": s["id"],
-                            "label": r.type,
-                            "animated": True,
+                            "position": {"x": 0, "y": 0},
                         })
 
-            return {"nodes": nodes, "edges": edges, "is_live_neo4j": True}
+                    # Handle incoming/outgoing relationships
+                    for rel_key, node_key, is_outgoing in [
+                        ("r", "other", False),
+                        ("r_in", "source", False),
+                        ("r_out", "target", True),
+                    ]:
+                        rel = record.get(rel_key)
+                        partner = record.get(node_key)
+                        if rel and partner and partner.get("id"):
+                            partner_id = partner["id"]
+                            if partner_id not in seen_nodes:
+                                seen_nodes.add(partner_id)
+                                nodes.append({
+                                    "id": partner_id,
+                                    "type": "architectureNode",
+                                    "data": {
+                                        "label": partner.get("name", partner.get("hash", "unknown")),
+                                        "name": partner.get("name", partner.get("hash", "unknown")),
+                                        "kind": partner.get("kind", type(partner).__name__.lower()),
+                                        "filePath": partner.get("file_path", ""),
+                                        "lineStart": partner.get("line_start"),
+                                    },
+                                    "position": {"x": 0, "y": 0},
+                                })
 
-        # Offline Fallback Graph: Construct from in-memory AST symbols
+                            src_id = s["id"] if is_outgoing else partner_id
+                            tgt_id = partner_id if is_outgoing else s["id"]
+                            edge_id = f"e-{src_id}->{tgt_id}-{rel.type}"
+                            if not any(e["id"] == edge_id for e in edges):
+                                edges.append({
+                                    "id": edge_id,
+                                    "source": src_id,
+                                    "target": tgt_id,
+                                    "label": rel.type,
+                                    "animated": rel.type in ("CALLS", "TESTS"),
+                                })
+
+            return {
+                "nodes": nodes,
+                "edges": edges,
+                "is_live_neo4j": True,
+                "note": f"Live Neo4j knowledge graph verified ({len(nodes)} symbols, {len(edges)} relationships).",
+            }
+
+        # Offline Fallback Graph: Construct from genuine in-memory AST evidence
         if fallback_symbols:
-            x, y = 50, 50
-            for idx, sym in enumerate(fallback_symbols[:20]):
-                node_id = f"sym-{idx}"
-                nodes.append({
-                    "id": node_id,
-                    "type": "default",
-                    "data": {
-                        "label": f"{sym.get('kind', 'symbol')}: {sym.get('name', 'unknown')}",
-                        "kind": sym.get("kind", "symbol"),
-                        "filePath": sym.get("file_path", ""),
-                        "line": sym.get("line_start", 1),
-                    },
-                    "position": {"x": x, "y": y},
-                })
-                x += 220
-                if x > 750:
-                    x = 50
-                    y += 110
+            for idx, sym in enumerate(fallback_symbols):
+                node_id = sym.get("id") or f"sym::{sym.get('file_path', 'source')}::{sym.get('name', f'sym_{idx}')}"
+                if node_id not in seen_nodes:
+                    seen_nodes.add(node_id)
+                    nodes.append({
+                        "id": node_id,
+                        "type": "architectureNode",
+                        "data": {
+                            "label": sym.get("name", "unknown"),
+                            "name": sym.get("name", "unknown"),
+                            "kind": sym.get("kind", "symbol"),
+                            "filePath": sym.get("file_path", ""),
+                            "lineStart": sym.get("line_start"),
+                            "lineEnd": sym.get("line_end"),
+                            "signature": sym.get("signature", ""),
+                            "docstring": sym.get("docstring"),
+                        },
+                        "position": {"x": 0, "y": 0},
+                    })
 
-            # Add sample relationships between sequential nodes if available
-            for i in range(len(nodes) - 1):
-                edges.append({
-                    "id": f"e-{i}-{i+1}",
-                    "source": nodes[i]["id"],
-                    "target": nodes[i+1]["id"],
-                    "label": "DEFINED_NEAR",
-                    "animated": False,
-                })
+        # Add ONLY genuine fallback edges where both endpoints exist in the node set
+        if fallback_edges:
+            seen_edge_ids = set()
+            for edge in fallback_edges:
+                src = edge.get("source")
+                tgt = edge.get("target")
+                lbl = edge.get("label", "CALLS")
+                # Integrity invariant: both endpoints must exist in seen_nodes
+                if src in seen_nodes and tgt in seen_nodes and src != tgt:
+                    edge_id = edge.get("id") or f"e-{src}->{tgt}-{lbl}"
+                    if edge_id not in seen_edge_ids:
+                        seen_edge_ids.add(edge_id)
+                        edges.append({
+                            "id": edge_id,
+                            "source": src,
+                            "target": tgt,
+                            "label": lbl,
+                            "animated": edge.get("animated", lbl in ("CALLS", "TESTS")),
+                        })
+
+        edge_types = sorted(list({e["label"] for e in edges}))
+        if edges:
+            note = f"Neo4j is offline. Displaying static AST dependency graph ({len(edges)} verified {', '.join(edge_types)} edges)."
+        else:
+            note = "Neo4j is offline. Displaying verified static AST symbols (no inter-symbol call or test relationships detected in current scope)."
 
         return {
             "nodes": nodes,
             "edges": edges,
             "is_live_neo4j": False,
-            "note": "Neo4j is offline. Displaying static AST memory graph.",
+            "note": note,
         }

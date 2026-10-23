@@ -3,6 +3,24 @@
 
 ---
 
+## 🚀 One-Click Platform Launch (Windows)
+
+```cmd
+:: From the ARCHON repository root:
+start_archon.bat
+
+:: Or via PowerShell:
+.\start_archon.ps1
+
+:: To gracefully stop all launched services:
+stop_archon.bat
+:: Or: .\start_archon.ps1 -Stop
+```
+
+The startup script validates Python virtualenv, Node.js/npm dependencies, checks for port conflicts (ports 8000 and 3000), starts Django and Next.js, and executes bounded health probes against `http://127.0.0.1:8000/api/v1/health/` and `http://localhost:3000`.
+
+---
+
 ## 🎬 3-Minute Live Hackathon Pitch & Demo Walkthrough
 
 ### Part 1: The Hook (30 Seconds)

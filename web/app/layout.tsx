@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ARCHON 2.0 — The Engineering Memory Engine",
-  description: "Evidence-first engineering intelligence platform for hackFront India 2026.",
+  title: "ARCHON 2.0 — Understand Code. See Impact. Build Safer.",
+  description:
+    "Evidence-first engineering memory engine powered by AST extraction, Git commit archaeology, and idempotent Neo4j GraphRAG.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

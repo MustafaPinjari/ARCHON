@@ -1,75 +1,118 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090d16;
-  --foreground: #e2e8f0;
-  --card: #0f172a;
-  --card-border: #1e293b;
-  --accent-cyan: #06b6d4;
-  --accent-emerald: #10b981;
-  --accent-violet: #8b5cf6;
+  /* =========================================================================
+     ARCHON 2.0 — Production Developer Tool Design System (Anti-AI-Slop)
+     Inspiration: Nexus Developer Dashboard, Linear, GitHub, Sentry
+     Palette: Deep Charcoal Surfaces, Silver Typography, Selective Cyan
+     ========================================================================= */
+
+  /* Surface Hierarchy */
+  --bg-app: #0d1117;
+  --bg-subtle: #161b22;
+  --bg-panel: #161b22;
+  --bg-surface: #21262d;
+  --bg-code: #0b0e14;
+
+  /* Typography */
+  --text-primary: #e6edf3;
+  --text-secondary: #8d96a0;
+  --text-muted: #6e7681;
+  --text-link: #58a6ff;
+  --text-accent: #38bdf8;
+
+  /* Hairline Borders (No heavy borders or glowing outlines) */
+  --border-subtle: #21262d;
+  --border-default: #30363d;
+  --border-active: #58a6ff;
+
+  /* Status Colors (Subtle, purposeful) */
+  --status-emerald: #3fb950;
+  --status-amber: #d29922;
+  --status-rose: #f85149;
+  --status-sky: #38bdf8;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbars */
+/* Precise developer scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: var(--bg-app);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+  background: #30363d;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #484f58;
 }
 
-/* Glowing Badges & Watermarks */
-.badge-glow-emerald {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #34d399;
+/* Subtle, purposeful citation card spotlight (No neon cartoon glows) */
+@keyframes citation-spotlight-subtle {
+  0% {
+    background-color: rgba(56, 189, 248, 0.12);
+    border-color: #38bdf8;
+  }
+  70% {
+    background-color: rgba(56, 189, 248, 0.08);
+    border-color: #38bdf8;
+  }
+  100% {
+    background-color: var(--bg-panel);
+    border-color: var(--border-subtle);
+  }
 }
 
-.badge-glow-cyan {
-  background: rgba(6, 182, 212, 0.1);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  color: #38bdf8;
+.citation-spotlight-active {
+  animation: citation-spotlight-subtle 2.5s ease-out forwards;
 }
 
-.badge-glow-violet {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #a78bfa;
-}
-
-.badge-glow-amber {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fde68a;
-}
-
-/* React Flow Dark Styling */
+/* React Flow Architecture Canvas (Calm dark technical styling) */
 .react-flow__node-default {
-  background: #131d33 !important;
-  color: #f1f5f9 !important;
-  border: 1px solid #334155 !important;
-  border-radius: 8px !important;
-  padding: 8px 14px !important;
-  font-size: 12px !important;
-  font-family: monospace !important;
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 11px !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease !important;
+}
+
+.react-flow__node-default:hover {
+  border-color: #58a6ff !important;
+  background: #21262d !important;
 }
 
 .react-flow__edge-path {
-  stroke: #06b6d4 !important;
+  stroke: #484f58 !important;
   stroke-width: 1.5 !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #58a6ff !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__controls-button {
+  background: #161b22 !important;
+  border-bottom: 1px solid #21262d !important;
+  color: #8d96a0 !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #21262d !important;
+  color: #e6edf3 !important;
 }

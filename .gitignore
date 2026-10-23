@@ -17,8 +17,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
+!web/lib/
 parts/
 sdist/
 var/
@@ -81,6 +82,7 @@ coverage/
 # ------------------------------------------------------------------------------
 # 6. Logs & Debugging
 # ------------------------------------------------------------------------------
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
