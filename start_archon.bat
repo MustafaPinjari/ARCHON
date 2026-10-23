@@ -2,7 +2,7 @@
 setlocal
 
 set "SCRIPT_DIR=%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%start_archon.ps1" %*
+"%SCRIPT_DIR%.venv\Scripts\python.exe" "%SCRIPT_DIR%dev.py" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 exit /b %EXIT_CODE%

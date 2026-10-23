@@ -32,30 +32,30 @@ export function Header({
   onRunInvestigation,
 }: HeaderProps) {
   return (
-    <header className="h-14 border-b border-[#21262d] bg-[#0d1117]/95 backdrop-blur px-6 flex items-center justify-between shrink-0 z-20">
+    <header className="h-14 border-b border-[var(--border-default)] bg-[var(--bg-panel)]/95 backdrop-blur px-6 flex items-center justify-between shrink-0 z-20 shadow-xs">
       {/* Left side: Repository Scope Switcher & Local Path Controls */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center bg-[#161b22] border border-[#30363d] rounded p-0.5 text-xs">
+        <div className="flex items-center bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-md p-0.5 text-xs">
           <button
             onClick={() => onRepoModeChange("demo")}
             className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 ${
               repoMode === "demo"
-                ? "bg-[#21262d] text-slate-100 font-semibold shadow-xs"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-[var(--brand-cream)] text-[var(--brand-pine)] font-semibold border border-[var(--brand-gold)] shadow-xs"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
-            <Sparkles className="w-3 h-3 text-sky-400" />
+            <Sparkles className="w-3 h-3 text-[var(--brand-pine)]" />
             <span>Curated Demo Repo</span>
           </button>
           <button
             onClick={() => onRepoModeChange("local")}
             className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 ${
               repoMode === "local"
-                ? "bg-[#21262d] text-slate-100 font-semibold shadow-xs"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-[var(--brand-cream)] text-[var(--brand-pine)] font-semibold border border-[var(--brand-gold)] shadow-xs"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
-            <FolderGit2 className="w-3 h-3 text-sky-400" />
+            <FolderGit2 className="w-3 h-3 text-[var(--brand-pine)]" />
             <span>Local Git Workspace</span>
           </button>
         </div>
@@ -67,21 +67,21 @@ export function Header({
               value={localPath}
               onChange={(e) => onLocalPathChange(e.target.value)}
               placeholder="e.g. C:\Users\user\Projects\my-repo"
-              className="w-72 bg-[#161b22] border border-[#30363d] px-3 py-1 text-xs rounded text-slate-100 font-mono focus:outline-none focus:border-sky-500 transition-colors placeholder:text-slate-600"
+              className="w-72 bg-[var(--bg-panel)] border border-[var(--border-default)] px-3 py-1 text-xs rounded-md text-[var(--text-primary)] font-mono focus:outline-none focus:border-[var(--brand-pine)] transition-colors placeholder:text-[var(--text-muted)]"
             />
             <button
               onClick={onValidatePath}
               disabled={isValidating}
-              className="px-2.5 py-1 text-xs rounded bg-[#21262d] hover:bg-[#30363d] disabled:opacity-50 text-slate-200 font-medium border border-[#30363d] flex items-center gap-1 transition-colors"
+              className="px-2.5 py-1 text-xs rounded-md bg-[var(--brand-cream)] hover:bg-[var(--brand-gold)] disabled:opacity-50 text-[var(--brand-pine)] font-medium border border-[var(--brand-gold)] flex items-center gap-1 transition-colors shadow-xs"
             >
-              <RefreshCw className={`w-3 h-3 ${isValidating ? "animate-spin text-sky-400" : "text-slate-400"}`} />
+              <RefreshCw className={`w-3 h-3 ${isValidating ? "animate-spin text-[var(--brand-pine)]" : "text-[var(--brand-sage)]"}`} />
               <span>Validate</span>
             </button>
             {validation?.is_valid && (
               <button
                 onClick={onIndexRepo}
                 disabled={isIndexing}
-                className="px-2.5 py-1 text-xs rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors"
+                className="px-2.5 py-1 text-xs rounded-md bg-[var(--brand-sage)] hover:bg-[var(--brand-pine)] disabled:opacity-50 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors"
               >
                 <Database className="w-3 h-3" />
                 <span>{isIndexing ? "Indexing..." : "Index Neo4j"}</span>
@@ -94,22 +94,22 @@ export function Header({
       {/* Right side: Repo Status Badge & Primary Action CTA */}
       <div className="flex items-center gap-3">
         {repoMode === "demo" ? (
-          <span className="text-xs font-mono text-slate-300 bg-[#161b22] border border-[#30363d] px-2.5 py-1 rounded flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+          <span className="text-xs font-mono text-[var(--brand-pine)] bg-[var(--brand-cream)] border border-[var(--brand-gold)] px-2.5 py-1 rounded-md flex items-center gap-1.5 font-medium shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-sage)]" />
             aegis-commerce-core (INC-8821)
           </span>
         ) : validation?.is_valid ? (
-          <span className="text-xs font-mono text-slate-300 bg-[#161b22] border border-[#30363d] px-2.5 py-1 rounded flex items-center gap-1.5">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+          <span className="text-xs font-mono text-[var(--brand-pine)] bg-[var(--brand-cream)] border border-[var(--brand-gold)] px-2.5 py-1 rounded-md flex items-center gap-1.5 font-medium shadow-xs">
+            <CheckCircle2 className="w-3 h-3 text-[var(--brand-pine)]" />
             <span>{validation.git_branch || "main"}</span>
-            <span className="text-slate-500">({validation.scanned_files_count} files)</span>
+            <span className="text-[var(--text-muted)]">({validation.scanned_files_count} files)</span>
           </span>
         ) : null}
 
         <button
           onClick={onRunInvestigation}
           disabled={isInvestigating}
-          className="px-3.5 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors"
+          className="px-4 py-1.5 rounded-md bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
         >
           <Play className="w-3 h-3 fill-white" />
           <span>{isInvestigating ? "Investigating..." : "Investigate Memory"}</span>

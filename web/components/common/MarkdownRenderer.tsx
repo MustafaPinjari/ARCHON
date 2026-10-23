@@ -117,7 +117,7 @@ export function MarkdownRenderer({
           return renderCitationButton(inner, match, segKey);
         }
         return (
-          <strong key={segKey} className="font-semibold text-slate-100">
+          <strong key={segKey} className="font-semibold text-[var(--text-primary)]">
             {inner}
           </strong>
         );
@@ -136,7 +136,7 @@ export function MarkdownRenderer({
         return (
           <code
             key={segKey}
-            className="font-mono text-xs text-sky-300 bg-[#161b22] border border-[#30363d] px-1 py-0.5 rounded"
+            className="font-mono text-xs text-[var(--brand-pine)] bg-[var(--brand-cream)] border border-[var(--brand-gold)] px-1.5 py-0.5 rounded"
           >
             {seg.slice(1, -1)}
           </code>
@@ -148,7 +148,7 @@ export function MarkdownRenderer({
         return (
           <span
             key={segKey}
-            className="font-mono text-xs text-slate-400 bg-[#161b22] px-1 py-0.5 rounded border border-[#21262d]"
+            className="font-mono text-xs text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-subtle)]"
           >
             {seg}
           </span>
@@ -181,23 +181,23 @@ export function MarkdownRenderer({
         }}
         title={`Evidence Receipt [${match.id}] • Tier: ${tier} • Click to jump`}
         aria-label={`Jump to evidence receipt ${match.id}`}
-        className="inline-flex items-center gap-1 mx-1 px-1.5 py-0.5 rounded text-xs font-mono font-medium bg-[#161b22] hover:bg-[#21262d] border border-[#30363d] hover:border-sky-400 text-sky-300 focus:outline-none focus:ring-1 focus:ring-sky-400 transition-colors cursor-pointer align-baseline"
+        className="inline-flex items-center gap-1 mx-1 px-1.5 py-0.5 rounded text-xs font-mono font-medium bg-[var(--brand-cream)] hover:bg-[var(--brand-gold)] border border-[var(--brand-gold)] hover:border-[var(--brand-pine)] text-[var(--brand-pine)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-pine)] transition-colors cursor-pointer align-baseline shadow-xs"
       >
         <span>{displayText}</span>
         <span
           className={`text-[9px] px-1 rounded font-sans font-semibold uppercase ${
             tier === "FACT"
-              ? "text-emerald-400 bg-emerald-950/60"
+              ? "text-[var(--brand-pine)] bg-emerald-100 border border-emerald-300"
               : tier === "INFERENCE"
-              ? "text-sky-300 bg-sky-950/60"
+              ? "text-[var(--brand-pine)] bg-amber-100 border border-amber-300"
               : tier === "HYPOTHESIS"
-              ? "text-amber-300 bg-amber-950/60"
-              : "text-slate-400 bg-slate-900"
+              ? "text-rose-900 bg-rose-100 border border-rose-300"
+              : "text-[var(--text-secondary)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)]"
           }`}
         >
           {tier}
         </span>
-        <ExternalLink className="w-2.5 h-2.5 text-slate-400 opacity-70 shrink-0" />
+        <ExternalLink className="w-2.5 h-2.5 text-[var(--brand-sage)] shrink-0" />
       </button>
     );
   };
@@ -213,8 +213,8 @@ export function MarkdownRenderer({
       blocks.push(
         <ul key={`list-${listIndex}`} className="space-y-1.5 my-2 pl-2">
           {listBuffer.map((itemText, idx) => (
-            <li key={`li-${listIndex}-${idx}`} className="flex items-start gap-2 text-xs leading-relaxed text-slate-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mt-1.5 shrink-0" />
+            <li key={`li-${listIndex}-${idx}`} className="flex items-start gap-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-sage)] mt-1.5 shrink-0" />
               <div className="flex-1">{renderInline(itemText, `li-${listIndex}-${idx}`)}</div>
             </li>
           ))}
@@ -232,7 +232,7 @@ export function MarkdownRenderer({
         blocks.push(
           <pre
             key={`code-${lineIdx}`}
-            className="my-3 p-3 bg-[#0b0e14] rounded border border-[#30363d] font-mono text-xs text-slate-200 overflow-x-auto whitespace-pre leading-snug"
+            className="my-3 p-3 bg-[var(--bg-code)] rounded-lg border border-[var(--border-default)] font-mono text-xs text-[var(--brand-pine)] overflow-x-auto whitespace-pre leading-snug shadow-xs"
           >
             {codeBuffer.join("\n")}
           </pre>
@@ -267,7 +267,7 @@ export function MarkdownRenderer({
       blocks.push(
         <h4
           key={`h4-${lineIdx}`}
-          className="text-xs font-bold uppercase tracking-wider text-slate-200 mt-4 mb-1.5 border-b border-[#21262d] pb-1"
+          className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] mt-4 mb-1.5 border-b border-[var(--border-subtle)] pb-1"
         >
           {trimmed.slice(4)}
         </h4>
@@ -280,7 +280,7 @@ export function MarkdownRenderer({
       blocks.push(
         <h3
           key={`h3-${lineIdx}`}
-          className="text-sm font-semibold text-slate-100 mt-4 mb-2 tracking-tight"
+          className="text-sm font-semibold text-[var(--text-primary)] mt-4 mb-2 tracking-tight"
         >
           {headingText}
         </h3>
@@ -292,7 +292,7 @@ export function MarkdownRenderer({
       blocks.push(
         <h5
           key={`title-${lineIdx}`}
-          className="text-xs font-semibold text-slate-200 mt-3 mb-1"
+          className="text-xs font-semibold text-[var(--text-primary)] mt-3 mb-1"
         >
           {trimmed.slice(2, -1).replace(/\*\*/g, "")}:
         </h5>
@@ -301,7 +301,7 @@ export function MarkdownRenderer({
     }
 
     blocks.push(
-      <p key={`p-${lineIdx}`} className="text-xs leading-relaxed text-slate-300 my-1.5">
+      <p key={`p-${lineIdx}`} className="text-xs leading-relaxed text-[var(--text-secondary)] my-1.5">
         {renderInline(trimmed, `p-${lineIdx}`)}
       </p>
     );

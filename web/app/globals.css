@@ -2,35 +2,57 @@
 
 :root {
   /* =========================================================================
-     ARCHON 2.0 — Production Developer Tool Design System (Anti-AI-Slop)
-     Inspiration: Nexus Developer Dashboard, Linear, GitHub, Sentry
-     Palette: Deep Charcoal Surfaces, Silver Typography, Selective Cyan
+     ARCHON 2.0 — Light Theme Design System (Whisperflow-inspired)
+     User Specified Color Palette:
+       #FFF2B4 (warm soft cream)
+       #E5CD82 (warm golden sand border & accent)
+       #15370D (deep forest pine primary / CTAs / active borders)
+       #557945 (sage moss green secondary / badges / graph edges)
+       #09251C (deep dark spruce / highest contrast text & headings)
      ========================================================================= */
 
-  /* Surface Hierarchy */
-  --bg-app: #0d1117;
-  --bg-subtle: #161b22;
-  --bg-panel: #161b22;
-  --bg-surface: #21262d;
-  --bg-code: #0b0e14;
+  /* Raw Brand Colors (User Supplied) */
+  --brand-cream: #FFF2B4;
+  --brand-gold: #E5CD82;
+  --brand-moss: #557945;
+  --brand-sage: #557945;
+  --brand-pine: #15370D;
+  --brand-darkspruce: #09251C;
+
+  /* Surfaces (Clean, breathable, warm light theme) */
+  --bg-app: #FAF7EE;          /* Main workspace canvas */
+  --bg-panel: #FFFFFF;        /* Card & container surfaces */
+  --bg-subtle: #F6F1DF;       /* Warm secondary surface */
+  --bg-surface: #FFFFFF;      /* Primary elevated surface */
+  --bg-code: #F4EED9;         /* Monospace code block surface */
+  --bg-hover: #FFF9E0;        /* Warm subtle hover */
 
   /* Typography */
-  --text-primary: #e6edf3;
-  --text-secondary: #8d96a0;
-  --text-muted: #6e7681;
-  --text-link: #58a6ff;
-  --text-accent: #38bdf8;
+  --text-primary: #09251C;    /* Deep dark spruce — ultra high contrast, crisp & elegant */
+  --text-secondary: #15370D;  /* Deep forest pine */
+  --text-muted: #557945;      /* Sage moss green muted text */
+  --text-inverse: #FFFFFF;    /* White text on dark buttons */
 
-  /* Hairline Borders (No heavy borders or glowing outlines) */
-  --border-subtle: #21262d;
-  --border-default: #30363d;
-  --border-active: #58a6ff;
+  /* Hairline Borders */
+  --border-subtle: #E8DEBE;   /* Soft warm border */
+  --border-default: #E5CD82;  /* Golden sand border */
+  --border-strong: #557945;   /* Moss green border */
+  --border-active: #15370D;   /* Active pine green border */
 
-  /* Status Colors (Subtle, purposeful) */
-  --status-emerald: #3fb950;
-  --status-amber: #d29922;
-  --status-rose: #f85149;
-  --status-sky: #38bdf8;
+  /* Component Accents */
+  --accent-primary: #15370D;  /* Pine green for primary actions & CTAs */
+  --accent-dark: #09251C;     /* Deep spruce action background */
+  --accent-hover: #09251C;    /* Deep spruce hover */
+  --accent-gold: #E5CD82;
+  --accent-moss: #557945;
+  --accent-sage: #557945;
+  --accent-cream: #FFF2B4;
+
+  /* Status Colors (Optimized for light mode) */
+  --status-emerald: #15370D;
+  --status-amber: #9A6700;
+  --status-rose: #C53030;
+  --status-sky: #1E6091;
 }
 
 body {
@@ -51,26 +73,26 @@ body {
   background: var(--bg-app);
 }
 ::-webkit-scrollbar-thumb {
-  background: #30363d;
+  background: #E5CD82;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #484f58;
+  background: #557945;
 }
 
-/* Subtle, purposeful citation card spotlight (No neon cartoon glows) */
+/* Subtle, purposeful citation card spotlight */
 @keyframes citation-spotlight-subtle {
   0% {
-    background-color: rgba(56, 189, 248, 0.12);
-    border-color: #38bdf8;
+    background-color: rgba(255, 242, 180, 0.9);
+    border-color: #15370D;
   }
   70% {
-    background-color: rgba(56, 189, 248, 0.08);
-    border-color: #38bdf8;
+    background-color: rgba(255, 242, 180, 0.4);
+    border-color: #557945;
   }
   100% {
     background-color: var(--bg-panel);
-    border-color: var(--border-subtle);
+    border-color: var(--border-default);
   }
 }
 
@@ -78,41 +100,44 @@ body {
   animation: citation-spotlight-subtle 2.5s ease-out forwards;
 }
 
-/* React Flow Architecture Canvas (Calm dark technical styling) */
+/* React Flow Architecture Canvas (Warm light styling) */
 .react-flow__node-default {
-  background: #161b22 !important;
-  color: #e6edf3 !important;
-  border: 1px solid #30363d !important;
-  border-radius: 6px !important;
+  background: #FFFFFF !important;
+  color: #09251C !important;
+  border: 1.5px solid #E5CD82 !important;
+  border-radius: 8px !important;
   padding: 8px 12px !important;
   font-size: 11px !important;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 1px 4px rgba(9, 37, 28, 0.08) !important;
   transition: border-color 0.15s ease, background-color 0.15s ease !important;
 }
 
 .react-flow__node-default:hover {
-  border-color: #58a6ff !important;
-  background: #21262d !important;
+  border-color: #15370D !important;
+  background: #FFF9E0 !important;
 }
 
 .react-flow__edge-path {
-  stroke: #484f58 !important;
-  stroke-width: 1.5 !important;
+  stroke: #557945 !important;
+  stroke-width: 1.5px !important;
 }
 
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: #58a6ff !important;
-  stroke-width: 2 !important;
+.react-flow__controls {
+  box-shadow: 0 1px 4px rgba(9, 37, 28, 0.1) !important;
+  border: 1px solid var(--border-default) !important;
+  background: #FFFFFF !important;
+  border-radius: 6px !important;
 }
 
 .react-flow__controls-button {
-  background: #161b22 !important;
-  border-bottom: 1px solid #21262d !important;
-  color: #8d96a0 !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  background: #FFFFFF !important;
+  fill: #09251C !important;
+  color: #09251C !important;
 }
 
 .react-flow__controls-button:hover {
-  background: #21262d !important;
-  color: #e6edf3 !important;
+  background: #FFF9E0 !important;
+  color: #15370D !important;
 }

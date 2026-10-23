@@ -13,6 +13,7 @@ import os
 from typing import List, Dict, Any, Optional, Set
 from neo4j import GraphDatabase, Driver
 from neo4j.exceptions import ServiceUnavailable, AuthError
+import archon.env  # noqa: F401
 
 
 class Neo4jGraphService:
@@ -26,22 +27,50 @@ class Neo4jGraphService:
         database: Optional[str] = None,
     ):
         self.uri = uri or os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-        self.user = user or os.environ.get("NEO4J_USER", "neo4j")
+        self.user = user or os.environ.get("NEO4J_USERNAME") or os.environ.get("NEO4J_USER", "neo4j")
         self.password = password or os.environ.get("NEO4J_PASSWORD", "password")
-        self.database = database or os.environ.get("NEO4J_DATABASE", "neo4j")
+        self.database = database or os.environ.get("NEO4J_DATABASE")
         self._driver: Optional[Driver] = None
 
     def get_driver(self) -> Optional[Driver]:
         if self._driver is None:
-            try:
-                self._driver = GraphDatabase.driver(
-                    self.uri,
-                    auth=(self.user, self.password),
-                    connection_timeout=3.0,
-                )
-            except Exception:
-                self._driver = None
+            candidate_uris = [self.uri]
+            # Aura cloud on Windows requires +ssc fallback when Windows certificate trust chain lacks direct root
+            if self.uri.startswith("neo4j+s://"):
+                candidate_uris.append(self.uri.replace("neo4j+s://", "neo4j+ssc://", 1))
+            elif self.uri.startswith("bolt+s://"):
+                candidate_uris.append(self.uri.replace("bolt+s://", "bolt+ssc://", 1))
+
+            for cand_uri in candidate_uris:
+                try:
+                    driver = GraphDatabase.driver(
+                        cand_uri,
+                        auth=(self.user, self.password),
+                        connection_timeout=5.0,
+                    )
+                    # Verify connectivity
+                    with driver.session() as s:
+                        s.run("RETURN 1 AS ping").single()
+                    self._driver = driver
+                    self.uri = cand_uri
+                    break
+                except Exception:
+                    continue
         return self._driver
+
+    def _get_session(self, driver: Driver):
+        """Returns a Neo4j session compatible with Aura cloud single-DB and local multi-DB."""
+        if self.database and self.database != "neo4j":
+            try:
+                return driver.session(database=self.database)
+            except Exception:
+                return driver.session()
+        try:
+            return driver.session()
+        except Exception:
+            if self.database:
+                return driver.session(database=self.database)
+            raise
 
     def close(self) -> None:
         if self._driver:
@@ -56,27 +85,29 @@ class Neo4jGraphService:
                 "is_connected": False,
                 "uri": self.uri,
                 "message": f"Could not create Neo4j driver for {self.uri}. Operating in offline memory mode.",
-                "database": self.database,
+                "database": self.database or "default",
             }
 
         try:
-            with driver.session(database=self.database) as session:
+            with self._get_session(driver) as session:
                 res = session.run("RETURN 1 as ping").single()
                 if res and res["ping"] == 1:
+                    is_aura = "databases.neo4j.io" in self.uri
+                    label = " (Neo4j Aura Cloud)" if is_aura else ""
                     return {
                         "is_connected": True,
                         "uri": self.uri,
-                        "message": "Neo4j connection verified and active.",
-                        "database": self.database,
+                        "message": f"Neo4j connection verified and active{label}.",
+                        "database": self.database or "default",
                     }
         except (ServiceUnavailable, AuthError, Exception) as e:
             return {
                 "is_connected": False,
                 "uri": self.uri,
                 "message": f"Neo4j offline or unreachable: {str(e)}",
-                "database": self.database,
+                "database": self.database or "default",
             }
-        return {"is_connected": False, "uri": self.uri, "message": "Unknown status", "database": self.database}
+        return {"is_connected": False, "uri": self.uri, "message": "Unknown status", "database": self.database or "default"}
 
     def init_schema(self) -> Dict[str, Any]:
         """Creates unique constraints to guarantee idempotency and fast lookups."""
@@ -93,7 +124,7 @@ class Neo4jGraphService:
             "CREATE CONSTRAINT IF NOT EXISTS FOR (t:Test) REQUIRE t.id IS UNIQUE",
         ]
 
-        with driver.session(database=self.database) as session:
+        with self._get_session(driver) as session:
             for query in constraints:
                 session.run(query)
 
@@ -121,7 +152,7 @@ class Neo4jGraphService:
             }
 
         driver = self.get_driver()
-        with driver.session(database=self.database) as session:
+        with self._get_session(driver) as session:
             # 1. Merge Repository
             session.run(
                 """
@@ -200,7 +231,7 @@ class Neo4jGraphService:
             return {"callers": [], "tests": [], "commits": [], "is_live_graph": False}
 
         driver = self.get_driver()
-        with driver.session(database=self.database) as session:
+        with self._get_session(driver) as session:
             # Query callers
             callers_res = session.run(
                 """
@@ -263,7 +294,7 @@ class Neo4jGraphService:
 
         if conn["is_connected"]:
             driver = self.get_driver()
-            with driver.session(database=self.database) as session:
+            with self._get_session(driver) as session:
                 if symbol_filter:
                     query = """
                     MATCH (s:Symbol {repo_id: $repo_id})

@@ -69,23 +69,23 @@ export function NodeInspectorPanel({
     .filter((item): item is { edge: FlowGraphEdge; testNode: FlowGraphNode } => !!item.testNode);
 
   return (
-    <div className="absolute top-14 right-3 bottom-3 w-84 sm:w-96 bg-[#161b22]/95 backdrop-blur border border-[#30363d] rounded-lg shadow-2xl z-20 flex flex-col overflow-hidden text-slate-200">
+    <div className="absolute top-14 right-3 bottom-3 w-84 sm:w-96 bg-[var(--bg-panel)]/98 backdrop-blur border border-[var(--border-default)] rounded-xl shadow-xl z-20 flex flex-col overflow-hidden text-[var(--text-primary)]">
       {/* Header */}
-      <div className="p-3 border-b border-[#21262d] flex items-start justify-between gap-2 bg-[#0d1117]/60">
+      <div className="p-3.5 border-b border-[var(--border-subtle)] flex items-start justify-between gap-2 bg-[var(--bg-subtle)]">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider bg-sky-950/80 text-sky-300 border border-sky-800/60">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider bg-[var(--brand-cream)] text-[var(--brand-pine)] border border-[var(--brand-gold)]">
               {data.kind || "symbol"}
             </span>
-            <span className="text-[11px] font-mono text-slate-400">Node Inspector</span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">Node Inspector</span>
           </div>
-          <h4 className="text-sm font-semibold font-mono text-slate-100 truncate" title={symbol}>
+          <h4 className="text-sm font-semibold font-mono text-[var(--text-primary)] truncate" title={symbol}>
             {symbol}
           </h4>
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-[#21262d] transition-colors"
+          className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
           title="Close Inspector"
         >
           <X className="w-4 h-4" />
@@ -95,16 +95,16 @@ export function NodeInspectorPanel({
       {/* Body Scroll Area */}
       <div className="flex-1 overflow-y-auto p-3.5 space-y-4 text-xs font-sans">
         {/* Location & Provenance Card */}
-        <div className="p-2.5 rounded bg-[#0d1117] border border-[#21262d] space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
-            <FileCode className="w-3.5 h-3.5 text-sky-400" />
+        <div className="p-2.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] space-y-1.5 shadow-xs">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--brand-pine)]">
+            <FileCode className="w-3.5 h-3.5 text-[var(--brand-sage)]" />
             <span>Source Declaration</span>
           </div>
-          <div className="text-[11px] font-mono text-slate-300 break-all">
+          <div className="text-[11px] font-mono text-[var(--text-primary)] break-all font-medium">
             {data.filePath || "Source location unindexed"}
           </div>
           {data.lineStart && (
-            <div className="text-[10px] font-mono text-slate-400">
+            <div className="text-[10px] font-mono text-[var(--text-muted)]">
               Lines: {data.lineStart} {data.lineEnd ? `– ${data.lineEnd}` : ""}
             </div>
           )}
@@ -113,11 +113,11 @@ export function NodeInspectorPanel({
         {/* Signature & Docstring */}
         {data.signature && (
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-              <Code2 className="w-3.5 h-3.5" />
+            <div className="text-[11px] font-semibold text-[var(--text-secondary)] flex items-center gap-1">
+              <Code2 className="w-3.5 h-3.5 text-[var(--brand-sage)]" />
               <span>Signature</span>
             </div>
-            <pre className="p-2 rounded bg-[#0d1117] border border-[#21262d] text-[10.5px] font-mono text-emerald-300 overflow-x-auto leading-relaxed">
+            <pre className="p-2 rounded-md bg-[var(--bg-code)] border border-[var(--border-subtle)] text-[10.5px] font-mono text-[var(--brand-pine)] overflow-x-auto leading-relaxed font-semibold">
               {data.signature}
             </pre>
           </div>
@@ -125,11 +125,11 @@ export function NodeInspectorPanel({
 
         {data.docstring && (
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-              <FileText className="w-3.5 h-3.5" />
+            <div className="text-[11px] font-semibold text-[var(--text-secondary)] flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5 text-[var(--brand-sage)]" />
               <span>Docstring Invariant</span>
             </div>
-            <div className="p-2 rounded bg-[#0d1117]/80 border border-[#21262d] text-[11px] text-slate-300 leading-relaxed max-h-28 overflow-y-auto">
+            <div className="p-2 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-secondary)] leading-relaxed max-h-28 overflow-y-auto">
               {data.docstring}
             </div>
           </div>
@@ -137,26 +137,26 @@ export function NodeInspectorPanel({
 
         {/* Incoming Callers */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-            <span className="flex items-center gap-1 text-sky-400">
-              <ArrowDownRight className="w-3.5 h-3.5" />
+          <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--brand-pine)]">
+            <span className="flex items-center gap-1">
+              <ArrowDownRight className="w-3.5 h-3.5 text-[var(--brand-sage)]" />
               <span>Incoming Callers ({incomingCalls.length})</span>
             </span>
           </div>
           {incomingCalls.length === 0 ? (
-            <p className="text-[11px] text-slate-400 italic">No incoming callers detected in current scope.</p>
+            <p className="text-[11px] text-[var(--text-muted)] italic">No incoming callers detected in current scope.</p>
           ) : (
             <div className="space-y-1">
               {incomingCalls.map(({ caller }) => (
                 <button
                   key={caller.id}
                   onClick={() => onSelectNode(caller.id)}
-                  className="w-full text-left p-1.5 rounded bg-[#0d1117] hover:bg-[#1a2332] border border-[#21262d] hover:border-sky-700/60 transition-colors flex items-center justify-between gap-2 group"
+                  className="w-full text-left p-1.5 rounded-md bg-[var(--bg-panel)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--brand-gold)] transition-colors flex items-center justify-between gap-2 group shadow-xs"
                 >
-                  <span className="font-mono text-[11px] text-slate-300 group-hover:text-sky-300 truncate">
+                  <span className="font-mono text-[11px] text-[var(--text-primary)] group-hover:text-[var(--brand-pine)] font-medium truncate">
                     {caller.data.name || caller.data.label}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-300 shrink-0">
+                  <span className="text-[10px] font-mono text-[var(--brand-sage)] group-hover:text-[var(--brand-pine)] font-semibold shrink-0">
                     Focus →
                   </span>
                 </button>
@@ -167,26 +167,26 @@ export function NodeInspectorPanel({
 
         {/* Outgoing Calls */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-            <span className="flex items-center gap-1 text-indigo-400">
-              <ArrowUpRight className="w-3.5 h-3.5" />
+          <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--brand-pine)]">
+            <span className="flex items-center gap-1">
+              <ArrowUpRight className="w-3.5 h-3.5 text-[var(--brand-sage)]" />
               <span>Outgoing Dependencies ({outgoingCalls.length})</span>
             </span>
           </div>
           {outgoingCalls.length === 0 ? (
-            <p className="text-[11px] text-slate-400 italic">No downstream symbol calls detected.</p>
+            <p className="text-[11px] text-[var(--text-muted)] italic">No downstream symbol calls detected.</p>
           ) : (
             <div className="space-y-1">
               {outgoingCalls.map(({ callee }) => (
                 <button
                   key={callee.id}
                   onClick={() => onSelectNode(callee.id)}
-                  className="w-full text-left p-1.5 rounded bg-[#0d1117] hover:bg-[#1a2332] border border-[#21262d] hover:border-indigo-700/60 transition-colors flex items-center justify-between gap-2 group"
+                  className="w-full text-left p-1.5 rounded-md bg-[var(--bg-panel)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] hover:border-[var(--brand-gold)] transition-colors flex items-center justify-between gap-2 group shadow-xs"
                 >
-                  <span className="font-mono text-[11px] text-slate-300 group-hover:text-indigo-300 truncate">
+                  <span className="font-mono text-[11px] text-[var(--text-primary)] group-hover:text-[var(--brand-pine)] font-medium truncate">
                     {callee.data.name || callee.data.label}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-300 shrink-0">
+                  <span className="text-[10px] font-mono text-[var(--brand-sage)] group-hover:text-[var(--brand-pine)] font-semibold shrink-0">
                     Focus →
                   </span>
                 </button>
@@ -197,26 +197,26 @@ export function NodeInspectorPanel({
 
         {/* Related Tests */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-            <span className="flex items-center gap-1 text-amber-400">
-              <ShieldCheck className="w-3.5 h-3.5" />
+          <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--brand-pine)]">
+            <span className="flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
               <span>Test Guardians ({relatedTests.length})</span>
             </span>
           </div>
           {relatedTests.length === 0 ? (
-            <p className="text-[11px] text-slate-400 italic">No direct test references mapped in current graph.</p>
+            <p className="text-[11px] text-[var(--text-muted)] italic">No direct test references mapped in current graph.</p>
           ) : (
             <div className="space-y-1">
               {relatedTests.map(({ testNode }) => (
                 <button
                   key={testNode.id}
                   onClick={() => onSelectNode(testNode.id)}
-                  className="w-full text-left p-1.5 rounded bg-[#0d1117] hover:bg-[#252015] border border-[#21262d] hover:border-amber-700/60 transition-colors flex items-center justify-between gap-2 group"
+                  className="w-full text-left p-1.5 rounded-md bg-amber-50/60 hover:bg-amber-100/70 border border-amber-200 transition-colors flex items-center justify-between gap-2 group shadow-xs"
                 >
-                  <span className="font-mono text-[11px] text-amber-300 truncate">
+                  <span className="font-mono text-[11px] text-amber-950 font-medium truncate">
                     {testNode.data.name || testNode.data.label}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400 group-hover:text-amber-200 shrink-0">
+                  <span className="text-[10px] font-mono text-amber-800 font-semibold shrink-0">
                     Focus →
                   </span>
                 </button>
@@ -227,11 +227,11 @@ export function NodeInspectorPanel({
       </div>
 
       {/* Footer Navigation Action */}
-      <div className="p-3 border-t border-[#21262d] bg-[#0d1117]/80 flex items-center justify-between gap-2">
+      <div className="p-3 border-t border-[var(--border-subtle)] bg-[var(--bg-subtle)] flex items-center justify-between gap-2">
         {onInvestigateSymbol && (
           <button
             onClick={() => onInvestigateSymbol(symbol)}
-            className="w-full py-1.5 px-3 rounded bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+            className="w-full py-1.5 px-3 rounded-md bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
           >
             <Compass className="w-3.5 h-3.5" />
             <span>Investigate Symbol in Workspace</span>

@@ -7,6 +7,7 @@
 param (
     [switch]$NoBrowser,
     [switch]$Stop,
+    [switch]$Detach,
     [int]$TimeoutSeconds = 40
 )
 
@@ -132,16 +133,20 @@ function Test-PortInUse([int]$Port) {
 
 $port8000 = Test-PortInUse 8000
 if ($port8000.InUse) {
-    Write-ErrorMsg "Port 8000 is already in use by PID $($port8000.Pid). Cannot start Django."
-    Write-ErrorMsg "Please stop the existing process or run .\start_archon.ps1 -Stop if it was an earlier ARCHON session."
-    exit 1
+    if ($port8000.Pid) {
+        Write-Info "Port 8000 is occupied by PID $($port8000.Pid). Automatically stopping stale process..."
+        Stop-Process -Id $port8000.Pid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 600
+    }
 }
 
 $port3000 = Test-PortInUse 3000
 if ($port3000.InUse) {
-    Write-ErrorMsg "Port 3000 is already in use by PID $($port3000.Pid). Cannot start Next.js."
-    Write-ErrorMsg "Please stop the existing process or run .\start_archon.ps1 -Stop if it was an earlier ARCHON session."
-    exit 1
+    if ($port3000.Pid) {
+        Write-Info "Port 3000 is occupied by PID $($port3000.Pid). Automatically stopping stale process..."
+        Stop-Process -Id $port3000.Pid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 600
+    }
 }
 
 # Ensure log directory
@@ -263,10 +268,57 @@ Write-Host "  Dashboard:       http://localhost:3000" -ForegroundColor White
 Write-Host "  REST API:        http://127.0.0.1:8000/api/v1/health/" -ForegroundColor White
 Write-Host "  Django PID:      $($djangoProc.Id)" -ForegroundColor DarkGray
 Write-Host "  Next.js PID:     $($nextProc.Id)" -ForegroundColor DarkGray
-Write-Host "  Logs:            $LogsDir" -ForegroundColor DarkGray
-Write-Host "  To stop services, execute:" -ForegroundColor Yellow
-Write-Host '    .\start_archon.ps1 -Stop' -ForegroundColor Cyan
-Write-Host '    or: .\stop_archon.bat' -ForegroundColor Cyan
 Write-Host ""
 
-exit 0
+if ($Detach) {
+    Write-Host "  Running in detached background mode." -ForegroundColor DarkGray
+    Write-Host "  To stop services, execute: .\stop_archon.bat" -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host "  Streaming unified logs below in this terminal." -ForegroundColor Yellow
+Write-Host "  Press Ctrl+C to stop both backend and frontend." -ForegroundColor Yellow
+Write-Host "----------------------------------------------------------" -ForegroundColor DarkGray
+
+$dLast = 0
+$nLast = 0
+
+try {
+    while ($true) {
+        if ($djangoProc.HasExited) {
+            Write-ErrorMsg "Django backend exited (code $($djangoProc.ExitCode))."
+            break
+        }
+        if ($nextProc.HasExited) {
+            Write-ErrorMsg "Next.js frontend exited (code $($nextProc.ExitCode))."
+            break
+        }
+
+        # Stream backend logs
+        if (Test-Path $DjangoErrLog) {
+            $dContent = Get-Content $DjangoErrLog -ErrorAction SilentlyContinue
+            if ($dContent -and $dContent.Count -gt $dLast) {
+                for ($i = $dLast; $i -lt $dContent.Count; $i++) {
+                    Write-Host "[backend]  $($dContent[$i])" -ForegroundColor Green
+                }
+                $dLast = $dContent.Count
+            }
+        }
+
+        # Stream frontend logs
+        if (Test-Path $NextOutLog) {
+            $nContent = Get-Content $NextOutLog -ErrorAction SilentlyContinue
+            if ($nContent -and $nContent.Count -gt $nLast) {
+                for ($i = $nLast; $i -lt $nContent.Count; $i++) {
+                    Write-Host "[frontend] $($nContent[$i])" -ForegroundColor Cyan
+                }
+                $nLast = $nContent.Count
+            }
+        }
+
+        Start-Sleep -Milliseconds 400
+    }
+}
+finally {
+    Stop-ArchonServices
+}

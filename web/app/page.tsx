@@ -113,6 +113,16 @@ export default function ArchonDashboard() {
 
   useEffect(() => {
     let isMounted = true;
+
+    async function checkHealthNow() {
+      try {
+        const h = await fetchHealth();
+        if (isMounted) setHealth(h);
+      } catch {
+        // Handled gracefully if backend is restarting
+      }
+    }
+
     async function initWorkspace() {
       try {
         const [healthRes, demoRes] = await Promise.allSettled([
@@ -135,9 +145,17 @@ export default function ArchonDashboard() {
         // Handled gracefully during initial startup
       }
     }
+
     initWorkspace();
+
+    // Poll health status every 8 seconds so status flips automatically when backend restarts
+    const interval = setInterval(checkHealthNow, 8000);
+    window.addEventListener("focus", checkHealthNow);
+
     return () => {
       isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener("focus", checkHealthNow);
     };
   }, []);
 
@@ -242,7 +260,7 @@ export default function ArchonDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0d1117] text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[var(--bg-app)] text-[var(--text-primary)] overflow-hidden font-sans">
       <Sidebar
         navItems={NAV_ITEMS}
         activeTab={activeTab}
@@ -250,7 +268,7 @@ export default function ArchonDashboard() {
         health={health}
       />
 
-      <main className="flex-1 flex flex-col overflow-hidden bg-[#0d1117]">
+      <main className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-app)]">
         <Header
           repoMode={repoMode}
           onRepoModeChange={setRepoMode}
