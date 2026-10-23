@@ -56,7 +56,7 @@ export function Header({
             }`}
           >
             <FolderGit2 className="w-3 h-3 text-[var(--brand-pine)]" />
-            <span>Local Git Workspace</span>
+            <span>Local / Git URL</span>
           </button>
         </div>
 
@@ -66,20 +66,20 @@ export function Header({
               type="text"
               value={localPath}
               onChange={(e) => onLocalPathChange(e.target.value)}
-              placeholder="e.g. C:\Users\user\Projects\my-repo"
-              className="w-72 bg-[var(--bg-panel)] border border-[var(--border-default)] px-3 py-1 text-xs rounded-md text-[var(--text-primary)] font-mono focus:outline-none focus:border-[var(--brand-pine)] transition-colors placeholder:text-[var(--text-muted)]"
+              placeholder="Local folder (C:\...) or Git URL (https://github.com/...)"
+              className="w-80 bg-[var(--bg-panel)] border border-[var(--border-default)] px-3 py-1 text-xs rounded-md text-[var(--text-primary)] font-mono focus:outline-none focus:border-[var(--brand-pine)] transition-colors placeholder:text-[var(--text-muted)]"
             />
             <button
-              onClick={onValidatePath}
+              onClick={() => onValidatePath()}
               disabled={isValidating}
               className="px-2.5 py-1 text-xs rounded-md bg-[var(--brand-cream)] hover:bg-[var(--brand-gold)] disabled:opacity-50 text-[var(--brand-pine)] font-medium border border-[var(--brand-gold)] flex items-center gap-1 transition-colors shadow-xs"
             >
               <RefreshCw className={`w-3 h-3 ${isValidating ? "animate-spin text-[var(--brand-pine)]" : "text-[var(--brand-sage)]"}`} />
-              <span>Validate</span>
+              <span>{isValidating ? "Cloning/Scanning..." : "Validate"}</span>
             </button>
             {validation?.is_valid && (
               <button
-                onClick={onIndexRepo}
+                onClick={() => onIndexRepo()}
                 disabled={isIndexing}
                 className="px-2.5 py-1 text-xs rounded-md bg-[var(--brand-sage)] hover:bg-[var(--brand-pine)] disabled:opacity-50 text-white font-medium flex items-center gap-1.5 shadow-xs transition-colors"
               >
@@ -101,13 +101,13 @@ export function Header({
         ) : validation?.is_valid ? (
           <span className="text-xs font-mono text-[var(--brand-pine)] bg-[var(--brand-cream)] border border-[var(--brand-gold)] px-2.5 py-1 rounded-md flex items-center gap-1.5 font-medium shadow-xs">
             <CheckCircle2 className="w-3 h-3 text-[var(--brand-pine)]" />
-            <span>{validation.git_branch || "main"}</span>
+            <span>{validation.is_remote ? (validation.remote_url?.replace(/^https?:\/\//, "").replace(/\.git$/, "") || "remote") : (validation.git_branch || "main")}</span>
             <span className="text-[var(--text-muted)]">({validation.scanned_files_count} files)</span>
           </span>
         ) : null}
 
         <button
-          onClick={onRunInvestigation}
+          onClick={() => onRunInvestigation()}
           disabled={isInvestigating}
           className="px-4 py-1.5 rounded-md bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
         >

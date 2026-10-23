@@ -49,7 +49,7 @@ class ValidateRepositoryView(APIView):
 
         repo_path = ser.validated_data["path"]
         val = RepositoryManager.validate_path(repo_path)
-        mgr = RepositoryManager(repo_path)
+        mgr = RepositoryManager(val.resolved_path if val.is_valid else repo_path)
         file_count = len(mgr.scan_files()) if val.is_valid else 0
 
         return Response({
@@ -59,6 +59,8 @@ class ValidateRepositoryView(APIView):
             "git_branch": val.git_branch,
             "error_message": val.error_message,
             "scanned_files_count": file_count,
+            "is_remote": getattr(val, "is_remote", False),
+            "remote_url": getattr(val, "remote_url", None),
         })
 
 
@@ -71,7 +73,6 @@ class IndexRepositoryView(APIView):
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
         repo_path = ser.validated_data["path"]
-        repo_id = ser.validated_data.get("repo_id") or os.path.basename(repo_path)
         mgr = RepositoryManager(repo_path)
 
         if not mgr.validation.is_valid:
@@ -79,6 +80,13 @@ class IndexRepositoryView(APIView):
                 {"error": mgr.validation.error_message},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        repo_id = ser.validated_data.get("repo_id")
+        if not repo_id or repo_id == "default-repo":
+            if getattr(mgr.validation, "is_remote", False) and mgr.validation.remote_url:
+                repo_id = mgr.validation.remote_url.rstrip("/").split("/")[-1].replace(".git", "")
+            else:
+                repo_id = os.path.basename(mgr.validation.resolved_path)
 
         files = mgr.scan_files()
         file_dicts = [
@@ -117,9 +125,10 @@ class IndexRepositoryView(APIView):
         # Ingest into Neo4j
         neo4j = Neo4jGraphService()
         neo4j.init_schema()
+        repo_name = getattr(mgr.validation, "remote_url", None) or os.path.basename(mgr.validation.resolved_path)
         ingest_res = neo4j.ingest_repository(
             repo_id=repo_id,
-            repo_name=os.path.basename(repo_path),
+            repo_name=repo_name,
             repo_path=mgr.validation.resolved_path,
             branch=mgr.validation.git_branch or "main",
             files=file_dicts,

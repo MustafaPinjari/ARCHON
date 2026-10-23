@@ -95,7 +95,7 @@ export function ImpactTab({
         </div>
 
         <button
-          onClick={onRunImpact}
+          onClick={() => onRunImpact()}
           disabled={isAnalyzingImpact}
           className="px-4 py-2 rounded-md bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
         >

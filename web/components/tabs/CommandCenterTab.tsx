@@ -31,6 +31,7 @@ export function CommandCenterTab({
   health,
   repoMode,
   localPath,
+  validation,
   indexMessage,
   isIndexing,
   onNavigateTab,
@@ -128,15 +129,26 @@ export function CommandCenterTab({
             <span>Active Target Workspace</span>
           </h3>
           <span className="text-[11px] font-mono text-[var(--text-muted)]">
-            {repoMode === "demo" ? "Curated Demo Fixture" : "Local Git Directory"}
+            {repoMode === "demo"
+              ? "Curated Demo Fixture"
+              : validation?.is_remote
+              ? "Remote Public Repository (Git)"
+              : "Local Git Directory"}
           </span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 bg-[var(--bg-subtle)] p-2.5 rounded-md border border-[var(--border-default)] text-xs font-mono text-[var(--text-primary)] truncate select-all">
-            {repoMode === "demo"
-              ? "github.com/mock-org/aegis-commerce-core (Production Billing Outage INC-8821)"
-              : localPath}
+            {repoMode === "demo" ? (
+              "github.com/mock-org/aegis-commerce-core (Production Billing Outage INC-8821)"
+            ) : validation?.is_remote ? (
+              <div className="space-y-0.5">
+                <div className="font-semibold text-[var(--brand-pine)]">{validation.remote_url || localPath}</div>
+                <div className="text-[11px] text-[var(--text-muted)] truncate">Cached: {validation.resolved_path}</div>
+              </div>
+            ) : (
+              localPath
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button

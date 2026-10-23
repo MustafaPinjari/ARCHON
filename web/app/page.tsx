@@ -202,12 +202,20 @@ export default function ArchonDashboard() {
 
   const handleRunInvestigation = async (overrideSymbol?: string, overrideQuestion?: string) => {
     setIsInvestigating(true);
-    const sym = overrideSymbol || selectedSymbol;
+    const safeSym =
+      typeof overrideSymbol === "string" && overrideSymbol.trim()
+        ? overrideSymbol.trim()
+        : typeof selectedSymbol === "string" && selectedSymbol.trim()
+        ? selectedSymbol.trim()
+        : "TenantSubscription";
     const defaultQ = selectedQuestion === "Custom..." ? customQuestion : selectedQuestion;
-    const q = overrideQuestion || defaultQ || "Why does this component exist?";
+    const q =
+      typeof overrideQuestion === "string" && overrideQuestion.trim()
+        ? overrideQuestion.trim()
+        : defaultQ || "Why does this component exist?";
     try {
       const res = await runInvestigation({
-        symbol: sym,
+        symbol: safeSym,
         question: q,
         repository_path: repoMode === "local" ? localPath : "",
         is_demo: repoMode === "demo",
@@ -280,7 +288,7 @@ export default function ArchonDashboard() {
           isIndexing={isIndexing}
           onIndexRepo={handleIndexRepository}
           isInvestigating={isInvestigating}
-          onRunInvestigation={handleRunInvestigation}
+          onRunInvestigation={() => handleRunInvestigation()}
         />
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -318,7 +326,7 @@ export default function ArchonDashboard() {
               customQuestion={customQuestion}
               onCustomQuestionChange={setCustomQuestion}
               isInvestigating={isInvestigating}
-              onRunInvestigation={handleRunInvestigation}
+              onRunInvestigation={() => handleRunInvestigation()}
               investigationResult={investigationResult}
               evidenceTab={evidenceTab}
               onEvidenceTabChange={setEvidenceTab}

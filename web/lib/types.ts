@@ -46,6 +46,8 @@ export interface ValidationResponse {
   git_branch: string | null;
   error_message: string | null;
   scanned_files_count: number;
+  is_remote?: boolean;
+  remote_url?: string | null;
 }
 
 export interface IndexResponse {

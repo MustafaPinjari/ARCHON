@@ -168,7 +168,7 @@ export function InvestigationTab({
           </div>
 
           <button
-            onClick={onRunInvestigation}
+            onClick={() => onRunInvestigation()}
             disabled={isInvestigating}
             className="w-full py-2 bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
           >
