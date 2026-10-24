@@ -11,8 +11,17 @@ Provides:
 from __future__ import annotations
 import os
 from typing import List, Dict, Any, Optional, Set
-from neo4j import GraphDatabase, Driver
-from neo4j.exceptions import ServiceUnavailable, AuthError
+try:
+    from neo4j import GraphDatabase, Driver
+    from neo4j.exceptions import ServiceUnavailable, AuthError
+    HAS_NEO4J = True
+except ImportError:
+    GraphDatabase = None
+    Driver = Any  # type: ignore
+    ServiceUnavailable = Exception  # type: ignore
+    AuthError = Exception  # type: ignore
+    HAS_NEO4J = False
+
 import archon.env  # noqa: F401
 
 
@@ -33,6 +42,9 @@ class Neo4jGraphService:
         self._driver: Optional[Driver] = None
 
     def get_driver(self) -> Optional[Driver]:
+        if not HAS_NEO4J or GraphDatabase is None:
+            return None
+
         if self._driver is None:
             candidate_uris = [self.uri]
             # Aura cloud on Windows requires +ssc fallback when Windows certificate trust chain lacks direct root
@@ -110,25 +122,29 @@ class Neo4jGraphService:
         return {"is_connected": False, "uri": self.uri, "message": "Unknown status", "database": self.database or "default"}
 
     def init_schema(self) -> Dict[str, Any]:
-        """Creates unique constraints to guarantee idempotency and fast lookups."""
-        conn = self.check_connection()
-        if not conn["is_connected"]:
-            return {"status": "skipped", "message": "Neo4j offline. Schema creation skipped."}
+        """Creates unique constraints and indexes to guarantee idempotency and fast lookups."""
+        try:
+            conn = self.check_connection()
+            if not conn["is_connected"]:
+                return {"status": "skipped", "message": "Neo4j offline. Schema creation skipped."}
 
-        driver = self.get_driver()
-        constraints = [
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (r:Repository) REQUIRE r.id IS UNIQUE",
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (f:File) REQUIRE f.id IS UNIQUE",
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (s:Symbol) REQUIRE s.id IS UNIQUE",
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (c:Commit) REQUIRE c.id IS UNIQUE",
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (t:Test) REQUIRE t.id IS UNIQUE",
-        ]
+            driver = self.get_driver()
+            constraints = [
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (r:Repository) REQUIRE r.id IS UNIQUE",
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (f:File) REQUIRE f.id IS UNIQUE",
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (s:Symbol) REQUIRE s.id IS UNIQUE",
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (c:Commit) REQUIRE c.id IS UNIQUE",
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (t:Test) REQUIRE t.id IS UNIQUE",
+                "CREATE INDEX IF NOT EXISTS FOR (s:Symbol) ON (s.name)",
+            ]
 
-        with self._get_session(driver) as session:
-            for query in constraints:
-                session.run(query)
+            with self._get_session(driver) as session:
+                for query in constraints:
+                    session.run(query)
 
-        return {"status": "success", "message": "Neo4j unique constraints verified."}
+            return {"status": "success", "message": "Neo4j unique constraints and indexes verified."}
+        except Exception as e:
+            return {"status": "warning", "message": f"Schema initialization warning: {str(e)}"}
 
     def ingest_repository(
         self,
@@ -151,78 +167,104 @@ class Neo4jGraphService:
                 "message": "Neo4j is offline. Data preserved in-memory for static inspection.",
             }
 
-        driver = self.get_driver()
-        with self._get_session(driver) as session:
-            # 1. Merge Repository
-            session.run(
-                """
-                MERGE (r:Repository {id: $repo_id})
-                SET r.name = $repo_name, r.path = $repo_path, r.branch = $branch, r.updated_at = timestamp()
-                """,
-                repo_id=repo_id, repo_name=repo_name, repo_path=repo_path, branch=branch
-            )
-
-            # 2. Batch Merge Files
-            if files:
+        try:
+            driver = self.get_driver()
+            with self._get_session(driver) as session:
+                # 1. Merge Repository
                 session.run(
                     """
-                    UNWIND $files AS f
-                    MERGE (file:File {id: $repo_id + ':' + f.relative_path})
-                    SET file.repo_id = $repo_id, file.relative_path = f.relative_path, file.is_test = f.is_test
-                    WITH file
-                    MATCH (r:Repository {id: $repo_id})
-                    MERGE (r)-[:CONTAINS]->(file)
+                    MERGE (r:Repository {id: $repo_id})
+                    SET r.name = $repo_name, r.path = $repo_path, r.branch = $branch, r.updated_at = timestamp()
                     """,
-                    repo_id=repo_id, files=files
+                    repo_id=repo_id, repo_name=repo_name, repo_path=repo_path, branch=branch
                 )
 
-            # 3. Batch Merge Symbols & DEFINES edges
-            if symbols:
-                session.run(
-                    """
-                    UNWIND $symbols AS s
-                    MERGE (sym:Symbol {id: $repo_id + ':' + s.file_path + ':' + s.name})
-                    SET sym.name = s.name, sym.kind = s.kind, sym.line_start = s.line_start,
-                        sym.line_end = s.line_end, sym.signature = s.signature,
-                        sym.docstring = s.docstring, sym.repo_id = $repo_id, sym.file_path = s.file_path
-                    WITH sym, s
-                    MATCH (f:File {id: $repo_id + ':' + s.file_path})
-                    MERGE (f)-[:DEFINES]->(sym)
-                    """,
-                    repo_id=repo_id, symbols=symbols
-                )
+                # 2. Batch Merge Files
+                if files:
+                    session.run(
+                        """
+                        UNWIND $files AS f
+                        MERGE (file:File {id: $repo_id + ':' + f.relative_path})
+                        SET file.repo_id = $repo_id, file.relative_path = f.relative_path, file.is_test = f.is_test
+                        WITH file
+                        MATCH (r:Repository {id: $repo_id})
+                        MERGE (r)-[:CONTAINS]->(file)
+                        """,
+                        repo_id=repo_id, files=files
+                    )
 
-            # 4. Batch Merge Commits & MODIFIES edges
-            if commits:
-                session.run(
-                    """
-                    UNWIND $commits AS c
-                    MERGE (com:Commit {id: $repo_id + ':' + c.hash})
-                    SET com.hash = c.hash, com.author = c.author, com.date = c.date, com.message = c.subject, com.repo_id = $repo_id
-                    """,
-                    repo_id=repo_id, commits=commits
-                )
+                # 3. Batch Merge Symbols & DEFINES edges
+                if symbols:
+                    session.run(
+                        """
+                        UNWIND $symbols AS s
+                        MERGE (sym:Symbol {id: $repo_id + ':' + s.file_path + ':' + s.name})
+                        SET sym.name = s.name, sym.kind = s.kind, sym.line_start = s.line_start,
+                            sym.line_end = s.line_end, sym.signature = s.signature,
+                            sym.docstring = s.docstring, sym.repo_id = $repo_id, sym.file_path = s.file_path
+                        WITH sym, s
+                        MATCH (f:File {id: $repo_id + ':' + s.file_path})
+                        MERGE (f)-[:DEFINES]->(sym)
+                        """,
+                        repo_id=repo_id, symbols=symbols
+                    )
 
-            # 5. Batch Merge Tests & TESTS edges
-            if tests:
-                session.run(
-                    """
-                    UNWIND $tests AS t
-                    MERGE (tst:Test {id: $repo_id + ':' + t.file_path + ':' + t.name})
-                    SET tst.name = t.name, tst.file_path = t.file_path, tst.line = t.line, tst.repo_id = $repo_id
-                    WITH tst, t
-                    WHERE t.target_symbol IS NOT NULL
-                    MATCH (target:Symbol {id: $repo_id + ':' + t.target_file + ':' + t.target_symbol})
-                    MERGE (tst)-[:TESTS]->(target)
-                    """,
-                    repo_id=repo_id, tests=tests
-                )
+                # 4. Batch Merge CALLS edges between Symbols
+                if calls:
+                    session.run(
+                        """
+                        UNWIND $calls AS c
+                        WITH c WHERE c.caller_symbol IS NOT NULL AND c.callee_name IS NOT NULL
+                        MATCH (caller:Symbol {id: $repo_id + ':' + c.caller_file + ':' + c.caller_symbol})
+                        MATCH (callee:Symbol {repo_id: $repo_id, name: c.callee_name})
+                        WHERE caller <> callee
+                        MERGE (caller)-[:CALLS]->(callee)
+                        """,
+                        repo_id=repo_id, calls=calls
+                    )
 
-        return {
-            "status": "success",
-            "repo_id": repo_id,
-            "message": "Neo4j Knowledge Graph successfully ingested and linked.",
-        }
+                # 5. Batch Merge Commits & MODIFIES edges
+                if commits:
+                    session.run(
+                        """
+                        UNWIND $commits AS c
+                        MERGE (com:Commit {id: $repo_id + ':' + c.hash})
+                        SET com.hash = c.hash, com.author = c.author, com.date = c.date, com.message = c.subject, com.repo_id = $repo_id
+                        WITH com
+                        MATCH (s:Symbol {repo_id: $repo_id})
+                        WHERE com.message CONTAINS s.name
+                        MERGE (com)-[:MODIFIES]->(s)
+                        """,
+                        repo_id=repo_id, commits=commits
+                    )
+
+                # 6. Batch Merge Tests & TESTS edges
+                if tests:
+                    session.run(
+                        """
+                        UNWIND $tests AS t
+                        MERGE (tst:Test {id: $repo_id + ':' + t.file_path + ':' + t.name})
+                        SET tst.name = t.name, tst.file_path = t.file_path, tst.line = t.line, tst.repo_id = $repo_id
+                        WITH tst, t
+                        WHERE t.target_symbol IS NOT NULL
+                        MATCH (target:Symbol {repo_id: $repo_id, name: t.target_symbol})
+                        MERGE (tst)-[:TESTS]->(target)
+                        """,
+                        repo_id=repo_id, tests=tests
+                    )
+
+            return {
+                "status": "success",
+                "repo_id": repo_id,
+                "message": "Neo4j Knowledge Graph successfully ingested and linked.",
+            }
+        except Exception as e:
+            return {
+                "status": "offline_fallback",
+                "repo_id": repo_id,
+                "message": f"Graph engine fallback (transient error: {str(e)}). Static analysis active.",
+            }
+
 
     def query_symbol_graph(self, repo_id: str, symbol_name: str) -> Dict[str, Any]:
         """Queries immediate 2-hop connected graph context for an investigated symbol."""
@@ -307,8 +349,9 @@ class Neo4jGraphService:
                 else:
                     query = """
                     MATCH (s:Symbol {repo_id: $repo_id})
-                    OPTIONAL MATCH (s)<-[r:TESTS|CALLS]-(other)
-                    RETURN s, r, other LIMIT 60
+                    OPTIONAL MATCH (s)<-[r_in:TESTS|CALLS]-(source)
+                    OPTIONAL MATCH (s)-[r_out:CALLS]->(target)
+                    RETURN s, r_in, source, r_out, target LIMIT 60
                     """
                     results = session.run(query, repo_id=repo_id)
 
@@ -334,7 +377,6 @@ class Neo4jGraphService:
 
                     # Handle incoming/outgoing relationships
                     for rel_key, node_key, is_outgoing in [
-                        ("r", "other", False),
                         ("r_in", "source", False),
                         ("r_out", "target", True),
                     ]:
@@ -368,6 +410,44 @@ class Neo4jGraphService:
                                     "label": rel.type,
                                     "animated": rel.type in ("CALLS", "TESTS"),
                                 })
+
+            # If Neo4j has 0 edges in the queried view, augment with verified AST edges
+            if len(edges) == 0 and fallback_edges:
+                if fallback_symbols:
+                    for sym in fallback_symbols:
+                        node_id = sym.get("id") or f"sym::{sym.get('file_path', 'source')}::{sym.get('name', 'sym')}"
+                        if node_id not in seen_nodes:
+                            seen_nodes.add(node_id)
+                            nodes.append({
+                                "id": node_id,
+                                "type": "architectureNode",
+                                "data": {
+                                    "label": sym.get("name", "unknown"),
+                                    "name": sym.get("name", "unknown"),
+                                    "kind": sym.get("kind", "symbol"),
+                                    "filePath": sym.get("file_path", ""),
+                                    "lineStart": sym.get("line_start"),
+                                    "lineEnd": sym.get("line_end"),
+                                    "signature": sym.get("signature", ""),
+                                    "docstring": sym.get("docstring"),
+                                },
+                                "position": {"x": 0, "y": 0},
+                            })
+
+                for edge in fallback_edges:
+                    src = edge.get("source")
+                    tgt = edge.get("target")
+                    lbl = edge.get("label", "CALLS")
+                    if src in seen_nodes and tgt in seen_nodes and src != tgt:
+                        edge_id = edge.get("id") or f"e-{src}->{tgt}-{lbl}"
+                        if not any(e["id"] == edge_id for e in edges):
+                            edges.append({
+                                "id": edge_id,
+                                "source": src,
+                                "target": tgt,
+                                "label": lbl,
+                                "animated": edge.get("animated", lbl in ("CALLS", "TESTS")),
+                            })
 
             return {
                 "nodes": nodes,

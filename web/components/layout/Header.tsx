@@ -107,7 +107,7 @@ export function Header({
         ) : null}
 
         <button
-          onClick={onRunInvestigation}
+          onClick={() => onRunInvestigation()}
           disabled={isInvestigating}
           className="px-4 py-1.5 rounded-md bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
         >

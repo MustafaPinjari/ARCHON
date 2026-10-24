@@ -148,14 +148,12 @@ export default function ArchonDashboard() {
 
     initWorkspace();
 
-    // Poll health status every 8 seconds so status flips automatically when backend restarts
-    const interval = setInterval(checkHealthNow, 8000);
-    window.addEventListener("focus", checkHealthNow);
+    // Poll health status every 30 seconds so status flips automatically when backend restarts
+    const interval = setInterval(checkHealthNow, 30000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
-      window.removeEventListener("focus", checkHealthNow);
     };
   }, []);
 
@@ -200,11 +198,17 @@ export default function ArchonDashboard() {
     }
   };
 
-  const handleRunInvestigation = async (overrideSymbol?: string, overrideQuestion?: string) => {
+  const handleRunInvestigation = async (overrideSymbol?: unknown, overrideQuestion?: unknown) => {
     setIsInvestigating(true);
-    const sym = overrideSymbol || selectedSymbol;
+    const sym =
+      typeof overrideSymbol === "string" && overrideSymbol.trim()
+        ? overrideSymbol.trim()
+        : selectedSymbol;
     const defaultQ = selectedQuestion === "Custom..." ? customQuestion : selectedQuestion;
-    const q = overrideQuestion || defaultQ || "Why does this component exist?";
+    const q =
+      typeof overrideQuestion === "string" && overrideQuestion.trim()
+        ? overrideQuestion.trim()
+        : defaultQ || "Why does this component exist?";
     try {
       const res = await runInvestigation({
         symbol: sym,

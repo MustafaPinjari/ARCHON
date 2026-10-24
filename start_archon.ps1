@@ -320,5 +320,7 @@ try {
     }
 }
 finally {
-    Stop-ArchonServices
+    if (-not $Detach) {
+        Stop-ArchonServices
+    }
 }

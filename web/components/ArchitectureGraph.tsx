@@ -367,7 +367,7 @@ function ArchitectureGraphContent({
 
           {/* Fit View */}
           <button
-            onClick={() => fitView({ padding: 0.15, duration: 400 })}
+            onClick={() => fitView({ padding: 0.2, minZoom: 0.5, maxZoom: 1.2, duration: 400 })}
             className="p-1.5 rounded-md bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--brand-pine)] border border-[var(--border-default)] transition-colors shadow-xs"
             title="Fit graph to canvas"
           >
@@ -403,8 +403,9 @@ function ArchitectureGraphContent({
           onNodeClick={(_, node) => handleSelectNode(node.id)}
           onPaneClick={handleClearSelection}
           fitView
+          fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 1.2 }}
           className="bg-[var(--bg-app)]"
-          minZoom={0.15}
+          minZoom={0.2}
           maxZoom={2.0}
         >
           <Background color="#E5CD82" gap={22} size={1} />

@@ -19,7 +19,14 @@ import archon.env  # noqa: F401
 
 ROOT_DIR = Path(__file__).resolve().parent
 WEB_DIR = ROOT_DIR / "web"
-PYTHON_EXE = sys.executable
+
+# Automatically resolve the virtual environment Python if present
+_venv_python = (
+    ROOT_DIR / ".venv" / "Scripts" / "python.exe"
+    if sys.platform == "win32"
+    else ROOT_DIR / ".venv" / "bin" / "python"
+)
+PYTHON_EXE = str(_venv_python) if _venv_python.exists() else sys.executable
 
 # ANSI color codes for single-terminal log stream
 ANSI_GREEN = "\033[92m"

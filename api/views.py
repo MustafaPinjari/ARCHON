@@ -89,6 +89,7 @@ class IndexRepositoryView(APIView):
         # AST Extraction on python source files
         all_symbols = []
         all_calls = []
+        all_tests = []
         for f in files:
             if f.relative_path.endswith(".py"):
                 analysis = AstExtractor.parse_file(f.relative_path, f.absolute_path)
@@ -103,31 +104,57 @@ class IndexRepositoryView(APIView):
                         "docstring": s.docstring,
                     })
                 for c in analysis.calls:
-                    all_calls.append({
-                        "caller_file": c.caller_file,
-                        "caller_line": c.caller_line,
-                        "callee_name": c.callee_name,
-                    })
+                    enclosing = None
+                    for s in analysis.symbols:
+                        if s.line_start <= c.caller_line <= s.line_end:
+                            enclosing = s
+                            break
+                    caller_sym = enclosing.name if enclosing else None
+                    is_test = (
+                        (enclosing and enclosing.name.startswith("test_"))
+                        or f.is_test
+                        or "test" in f.relative_path.lower()
+                    )
+                    if is_test:
+                        all_tests.append({
+                            "name": caller_sym or c.callee_name,
+                            "file_path": f.relative_path,
+                            "line": c.caller_line,
+                            "target_symbol": c.callee_name,
+                        })
+                    else:
+                        all_calls.append({
+                            "caller_file": c.caller_file,
+                            "caller_symbol": caller_sym,
+                            "caller_line": c.caller_line,
+                            "callee_name": c.callee_name,
+                        })
 
         # Git Archaeology Commits
         commits = []
         if mgr.validation.is_git_repo:
             commits, _ = mgr.search_git_symbol("", limit=20)
 
-        # Ingest into Neo4j
-        neo4j = Neo4jGraphService()
-        neo4j.init_schema()
-        ingest_res = neo4j.ingest_repository(
-            repo_id=repo_id,
-            repo_name=os.path.basename(repo_path),
-            repo_path=mgr.validation.resolved_path,
-            branch=mgr.validation.git_branch or "main",
-            files=file_dicts,
-            symbols=all_symbols,
-            calls=all_calls,
-            commits=commits,
-            tests=[],
-        )
+        # Ingest into Neo4j with graceful offline fallback
+        try:
+            neo4j = Neo4jGraphService()
+            neo4j.init_schema()
+            ingest_res = neo4j.ingest_repository(
+                repo_id=repo_id,
+                repo_name=os.path.basename(repo_path),
+                repo_path=mgr.validation.resolved_path,
+                branch=mgr.validation.git_branch or "main",
+                files=file_dicts,
+                symbols=all_symbols,
+                calls=all_calls,
+                commits=commits,
+                tests=all_tests,
+            )
+        except Exception as e:
+            ingest_res = {
+                "status": "offline_fallback",
+                "message": f"Graph engine fallback: {str(e)}",
+            }
 
         return Response({
             "repo_id": repo_id,

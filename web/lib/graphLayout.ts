@@ -88,6 +88,7 @@ export function applyDeterministicLayout(
   // 2. Lay out each component independently
   let compOffsetX = 40;
   let compOffsetY = 40;
+  let maxRowHeight = 0;
 
   for (const compNodeIds of components) {
     const compNodeSet = new Set(compNodeIds);
@@ -191,6 +192,27 @@ export function applyDeterministicLayout(
       if (width > maxRankWidth) maxRankWidth = width;
     }
 
+    const compWidth = maxRankWidth;
+    const compHeight = isTB
+      ? (maxRank + 1) * (opts.nodeHeight + opts.rankSeparation)
+      : maxRankWidth;
+
+    // Wrap component to next row or column when canvas span is reached
+    const MAX_CANVAS_SPAN = 1350;
+    if (isTB) {
+      if (compOffsetX > 40 && compOffsetX + compWidth > MAX_CANVAS_SPAN) {
+        compOffsetX = 40;
+        compOffsetY += maxRowHeight + opts.componentSeparation;
+        maxRowHeight = 0;
+      }
+    } else {
+      if (compOffsetY > 40 && compOffsetY + compHeight > MAX_CANVAS_SPAN) {
+        compOffsetY = 40;
+        compOffsetX += maxRowHeight + opts.componentSeparation;
+        maxRowHeight = 0;
+      }
+    }
+
     for (let r = 0; r <= maxRank; r++) {
       const nodesInRank = rankGroups.get(r) || [];
       const rankNodeCount = nodesInRank.length;
@@ -216,9 +238,10 @@ export function applyDeterministicLayout(
 
     // Advance component offset
     if (isTB) {
-      compOffsetX += maxRankWidth + opts.componentSeparation;
+      if (compHeight > maxRowHeight) maxRowHeight = compHeight;
+      compOffsetX += compWidth + opts.componentSeparation;
     } else {
-      const compHeight = (maxRank + 1) * (opts.nodeHeight + opts.rankSeparation);
+      if (compWidth > maxRowHeight) maxRowHeight = compWidth;
       compOffsetY += compHeight + opts.componentSeparation;
     }
   }
