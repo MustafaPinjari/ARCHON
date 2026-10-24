@@ -6,7 +6,9 @@ Enforces zero-execution static analysis, secret scrubbing, and safe path bounds.
 from __future__ import annotations
 import os
 import re
+import shutil
 import subprocess
+from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
 
@@ -26,6 +28,7 @@ BLOCKED_DIR_NAMES = {
     "vendor",
     "env",
     ".pytest_cache",
+    ".archon_cache",
 }
 
 BLOCKED_FILE_PATTERNS = [
@@ -53,6 +56,8 @@ class PathValidationResult:
     is_git_repo: bool
     error_message: Optional[str] = None
     git_branch: Optional[str] = None
+    is_remote: bool = False
+    remote_url: Optional[str] = None
 
 
 @dataclass
@@ -117,24 +122,206 @@ class SymbolSearchResults:
     search_limitations: List[str]
 
 
+ARCHON_REMOTE_CACHE_DIR = Path(__file__).resolve().parent.parent / ".archon_cache" / "remote_repos"
+
+
+def is_remote_git_url(path_str: str) -> bool:
+    """Checks whether the input string represents a remote Git repository URL."""
+    if not path_str or not isinstance(path_str, str):
+        return False
+    s = path_str.strip()
+    if s.startswith(("https://", "http://", "git@", "git://", "ssh://")):
+        return True
+    if re.match(r"^(github\.com|gitlab\.com|bitbucket\.org)/[\w.\-_]+/[\w.\-_]+", s, re.IGNORECASE):
+        return True
+    return False
+
+
+def normalize_git_url(url_str: str) -> str:
+    """Normalizes a Git URL to a safe HTTPS format."""
+    s = url_str.strip()
+    if re.match(r"^(github\.com|gitlab\.com|bitbucket\.org)/", s, re.IGNORECASE):
+        s = "https://" + s
+    return s
+
+
+def sanitize_repo_slug(url_str: str) -> str:
+    """Generates a safe deterministic directory name for a cloned remote repo."""
+    clean = url_str.strip().rstrip("/")
+    if clean.endswith(".git"):
+        clean = clean[:-4]
+    slug = re.sub(r"^(https?://|git@|git://|ssh://)", "", clean)
+    slug = re.sub(r"[/\\:@]", "_", slug)
+    slug = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", slug)
+    return slug[:100]
+
+
 class RepositoryManager:
-    """Manages safe inspection of local Git workspaces."""
+    """Manages safe inspection of local and remote Git workspaces."""
 
     def __init__(self, repo_path: str):
         self.raw_path = repo_path
         self.validation = self.validate_path(repo_path)
         self.root_path = self.validation.resolved_path if self.validation.is_valid else ""
 
-    @staticmethod
-    def validate_path(path_str: str) -> PathValidationResult:
-        """Safely verifies that a directory exists, is accessible, and identifies if it is a Git repo."""
+    @classmethod
+    def validate_remote_repo(cls, url_str: str) -> PathValidationResult:
+        """Safely clones or accesses a cached public Git repository (GitHub, GitLab, etc.)."""
+        normalized_url = normalize_git_url(url_str)
+        lower_url = normalized_url.lower()
+
+        # Security check: only allow HTTPS, HTTP, and SSH Git URLs
+        if not (lower_url.startswith("https://") or lower_url.startswith("http://") or lower_url.startswith("git@")):
+            return PathValidationResult(
+                is_valid=False,
+                resolved_path="",
+                is_git_repo=False,
+                error_message="Only HTTPS, HTTP, and SSH Git repository URLs are permitted for security.",
+                is_remote=True,
+                remote_url=url_str,
+            )
+
+        slug = sanitize_repo_slug(normalized_url)
+        target_dir = ARCHON_REMOTE_CACHE_DIR / slug
+
+        try:
+            ARCHON_REMOTE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            return PathValidationResult(
+                is_valid=False,
+                resolved_path="",
+                is_git_repo=False,
+                error_message=f"Failed to create cache directory: {str(e)}",
+                is_remote=True,
+                remote_url=normalized_url,
+            )
+
+        # Check if target_dir already exists and has a valid Git worktree
+        if target_dir.exists() and (target_dir / ".git").exists():
+            try:
+                proc = subprocess.run(
+                    ["git", "rev-parse", "--is-inside-work-tree"],
+                    cwd=str(target_dir),
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    shell=False,
+                )
+                if proc.returncode == 0 and "true" in proc.stdout.strip():
+                    branch_proc = subprocess.run(
+                        ["git", "branch", "--show-current"],
+                        cwd=str(target_dir),
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                        shell=False,
+                    )
+                    branch = branch_proc.stdout.strip() if branch_proc.returncode == 0 else "main"
+                    if not branch:
+                        branch = "HEAD (detached)"
+                    return PathValidationResult(
+                        is_valid=True,
+                        resolved_path=str(target_dir.resolve()),
+                        is_git_repo=True,
+                        git_branch=branch,
+                        is_remote=True,
+                        remote_url=normalized_url,
+                    )
+            except Exception:
+                pass
+            # If directory exists but git is broken, clean up
+            try:
+                shutil.rmtree(str(target_dir), ignore_errors=True)
+            except Exception:
+                pass
+
+        # Clone remote repository safely with depth boundary
+        try:
+            clone_cmd = [
+                "git", "clone",
+                "--depth", "50",
+                "--single-branch",
+                "--",
+                normalized_url,
+                str(target_dir),
+            ]
+            proc = subprocess.run(
+                clone_cmd,
+                capture_output=True,
+                text=True,
+                timeout=90,
+                shell=False,
+            )
+            if proc.returncode != 0:
+                shutil.rmtree(str(target_dir), ignore_errors=True)
+                err_msg = proc.stderr.strip() or proc.stdout.strip() or "Unknown clone failure"
+                return PathValidationResult(
+                    is_valid=False,
+                    resolved_path="",
+                    is_git_repo=False,
+                    error_message=f"Git clone failed: {SecretScrubber.scrub(err_msg)}",
+                    is_remote=True,
+                    remote_url=normalized_url,
+                )
+
+            branch_proc = subprocess.run(
+                ["git", "branch", "--show-current"],
+                cwd=str(target_dir),
+                capture_output=True,
+                text=True,
+                timeout=5,
+                shell=False,
+            )
+            branch = branch_proc.stdout.strip() if branch_proc.returncode == 0 else "main"
+            if not branch:
+                branch = "HEAD (detached)"
+
+            return PathValidationResult(
+                is_valid=True,
+                resolved_path=str(target_dir.resolve()),
+                is_git_repo=True,
+                git_branch=branch,
+                is_remote=True,
+                remote_url=normalized_url,
+            )
+
+        except subprocess.TimeoutExpired:
+            shutil.rmtree(str(target_dir), ignore_errors=True)
+            return PathValidationResult(
+                is_valid=False,
+                resolved_path="",
+                is_git_repo=False,
+                error_message="Git clone timed out after 90 seconds. Repository may be too large or network is slow.",
+                is_remote=True,
+                remote_url=normalized_url,
+            )
+        except Exception as e:
+            shutil.rmtree(str(target_dir), ignore_errors=True)
+            return PathValidationResult(
+                is_valid=False,
+                resolved_path="",
+                is_git_repo=False,
+                error_message=f"Error cloning repository: {SecretScrubber.scrub(str(e))}",
+                is_remote=True,
+                remote_url=normalized_url,
+            )
+
+    @classmethod
+    def validate_path(cls, path_str: str) -> PathValidationResult:
+        """Safely verifies that a directory exists, or clones if remote Git URL, and identifies if it is a Git repo."""
         if not path_str or not path_str.strip():
             return PathValidationResult(
                 is_valid=False,
                 resolved_path="",
                 is_git_repo=False,
-                error_message="Path is empty.",
+                error_message="Path or repository URL is empty.",
             )
+
+        trimmed = path_str.strip()
+
+        # Handle remote public Git repositories (GitHub, GitLab, Bitbucket, etc.)
+        if is_remote_git_url(trimmed):
+            return cls.validate_remote_repo(trimmed)
 
         try:
             resolved = os.path.realpath(os.path.abspath(path_str.strip()))

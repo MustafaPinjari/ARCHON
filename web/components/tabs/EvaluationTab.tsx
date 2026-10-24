@@ -29,7 +29,7 @@ export function EvaluationTab({
           </p>
         </div>
         <button
-          onClick={onRunEvaluation}
+          onClick={() => onRunEvaluation()}
           disabled={isEvaluating}
           className="px-4 py-2 rounded-lg bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white text-xs font-semibold transition-colors flex items-center gap-2 self-start sm:self-auto shadow-xs cursor-pointer"
         >
@@ -139,7 +139,7 @@ export function EvaluationTab({
             Git pickaxe blame attribution, and reverse caller dependencies.
           </p>
           <button
-            onClick={onRunEvaluation}
+            onClick={() => onRunEvaluation()}
             disabled={isEvaluating}
             className="mt-2 px-4 py-2 rounded-lg bg-[var(--brand-pine)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
           >

@@ -85,3 +85,36 @@ def test_scan_files_skips_blocked_directories():
         assert "main.py" in scanned_paths
         assert not any("node_modules" in p for p in scanned_paths)
         assert not any(".env" in p for p in scanned_paths)
+
+
+def test_remote_git_url_helpers():
+    from archon.repository import is_remote_git_url, normalize_git_url, sanitize_repo_slug
+
+    # Valid remote URLs
+    assert is_remote_git_url("https://github.com/psf/requests")
+    assert is_remote_git_url("https://github.com/pallets/flask.git")
+    assert is_remote_git_url("git@github.com:encode/django-rest-framework.git")
+    assert is_remote_git_url("github.com/fastapi/fastapi")
+
+    # Local paths must not be detected as remote
+    assert not is_remote_git_url("C:\\Users\\user\\Desktop\\my-repo")
+    assert not is_remote_git_url("/var/www/project")
+    assert not is_remote_git_url("./relative/path")
+
+    # Normalization
+    assert normalize_git_url("github.com/psf/requests") == "https://github.com/psf/requests"
+    assert normalize_git_url("https://github.com/psf/requests") == "https://github.com/psf/requests"
+
+    # Sanitized slug
+    slug = sanitize_repo_slug("https://github.com/psf/requests.git")
+    assert slug == "github.com_psf_requests"
+    assert "/" not in slug
+    assert "\\" not in slug
+
+
+def test_remote_git_url_protocol_security():
+    # Only HTTPS, HTTP, and SSH should be allowed
+    bad_res = RepositoryManager.validate_remote_repo("file:///etc/passwd")
+    assert not bad_res.is_valid
+    assert "security" in bad_res.error_message.lower()
+

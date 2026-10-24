@@ -76,10 +76,16 @@ export async function runInvestigation(params: {
   repository_path?: string;
   is_demo?: boolean;
 }): Promise<InvestigationResult> {
+  const cleanPayload = {
+    symbol: typeof params?.symbol === "string" ? params.symbol : String(params?.symbol || ""),
+    question: typeof params?.question === "string" ? params.question : String(params?.question || ""),
+    repository_path: typeof params?.repository_path === "string" ? params.repository_path : "",
+    is_demo: Boolean(params?.is_demo),
+  };
   const res = await fetch(`${API_BASE_URL}/investigations/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify(cleanPayload),
   });
   if (!res.ok) throw new Error(`Investigation request failed: ${res.statusText}`);
   return res.json();
@@ -87,8 +93,8 @@ export async function runInvestigation(params: {
 
 export async function fetchGraph(path?: string, symbol?: string, repoId: string = "default-repo"): Promise<FlowGraph> {
   const params = new URLSearchParams();
-  if (path) params.set("path", path);
-  if (symbol) params.set("symbol", symbol);
+  if (path && typeof path === "string") params.set("path", path);
+  if (symbol && typeof symbol === "string") params.set("symbol", symbol);
   params.set("repo_id", repoId);
 
   const res = await fetch(`${API_BASE_URL}/repositories/graph/?${params.toString()}`, { cache: "no-store" });
@@ -101,10 +107,15 @@ export async function runImpactAnalysis(params: {
   proposed_change: string;
   repository_path?: string;
 }): Promise<ImpactReport> {
+  const cleanPayload = {
+    symbol: typeof params?.symbol === "string" ? params.symbol : String(params?.symbol || ""),
+    proposed_change: typeof params?.proposed_change === "string" ? params.proposed_change : String(params?.proposed_change || ""),
+    repository_path: typeof params?.repository_path === "string" ? params.repository_path : "",
+  };
   const res = await fetch(`${API_BASE_URL}/impact-analysis/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify(cleanPayload),
   });
   if (!res.ok) throw new Error(`Impact analysis failed: ${res.statusText}`);
   return res.json();
