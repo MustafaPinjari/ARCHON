@@ -1,0 +1,85 @@
+{
+  "1_health": {
+    "status_code": 200,
+    "data": {
+      "status": "healthy",
+      "version": "2.0.0",
+      "service": "ARCHON \u2014 The Engineering Memory Engine",
+      "security": {
+        "zero_code_execution": true,
+        "secret_scrubber_active": true,
+        "offline_boundary_enforced": true
+      },
+      "neo4j": {
+        "is_connected": true,
+        "uri": "neo4j+ssc://a567c77c.databases.neo4j.io",
+        "message": "Neo4j connection verified and active (Neo4j Aura Cloud).",
+        "database": "a567c77c"
+      }
+    }
+  },
+  "2_validate_index": {
+    "validate": {
+      "is_valid": true,
+      "resolved_path": "C:\\Users\\mustafa\\Desktop\\BAHub",
+      "is_git_repo": true,
+      "git_branch": "main",
+      "error_message": null,
+      "scanned_files_count": 464,
+      "is_remote": false,
+      "remote_url": null
+    },
+    "index": {
+      "repo_id": "BAHub",
+      "resolved_path": "C:\\Users\\mustafa\\Desktop\\BAHub",
+      "files_indexed": 464,
+      "symbols_indexed": 1352,
+      "calls_indexed": 6942,
+      "neo4j_status": {
+        "status": "success",
+        "repo_id": "BAHub",
+        "message": "Neo4j Knowledge Graph successfully ingested and linked."
+      }
+    }
+  },
+  "3_investigation": {
+    "status_code": 200,
+    "item_count": 21,
+    "pillars": {
+      "Temporal Intent (Git History)": 4,
+      "Architectural Contract (Docstrings & Code)": 1,
+      "Verification Mesh (Test Evidence)": 8,
+      "Blast Radius (Structural Dependencies)": 8
+    },
+    "first_receipt": {
+      "id": "GIT-LOCAL-1",
+      "pillar": "Temporal Intent (Git History)",
+      "title": "Commit f4e6aa1 \u2014 feat: Upgrade payment protection, dynamic invoice generation, PDF receipts download, admin dashboard analytics, frontend locked screens, and register all app models in Django admin",
+      "location": "Git History: Commit f4e6aa1",
+      "summary": "Authored by MustafaPinjari on 2026-07-08 23:58:21 +0530",
+      "verifiable_payload": "commit f4e6aa190bcfda909c3f1003d28b863d6ce12c05\nAuthor: MustafaPinjari <unlessuser99@gmail.com>\nDate:   Wed Jul 8 23:58:21 2026 +0530\n\n    feat: Upgrade payment protection, dynamic invoice generation, PDF receipts download, admin dashboard analytics, frontend locked screens, and register all app models in Django admin\n\n backend/bahub_backend/settings.py                  |   1 +\n backend/billing/admin.py                           |  25 +\n ...event_tenantsubscription_expires_at_and_more.py | 208 +++++++++\n backend/billing/models.py                          | 106 +++++\n backend/billing/pdf_utils.py                       | 123 +++++\n backend/billing/urls.py                            |   8 +-\n backend/billing/views.py                           | 520 ++++++++++++++-------\n backend/core/emails.py                             |  37 +-\n backend/core/middleware.py                         |  78 ++++\n backend/core/templates/core/payment_receipt.html   |  42 ++\n backend/core/templates/core/payment_receipt.txt    |  15 +\n backend/meetings/admin.py                          |  12 +-\n backend/organizations/admin.py                     |  12 +-\n backend/projects/admin.py                          |  13 +-\n backend/requirements/admin.py                      |   7 +-\n backend/risks/admin.py                             |  13 +-\n backend/stakeholders/admin.py                      |   7 +-\n backend/stories/admin.py                           |   7 +-\n backend/strategic/admin.py                         |  12 +-\n backend/teams/admin.py                             |   6 +-\n backend/uat/admin.py                               |  13 +-\n backend/users/admin.py                             |  14 +-\n backend/users/serializers.py                       |  90 +++-\n frontend/src/App.tsx                               |  23 +-\n frontend/src/components/layout/DashboardShell.tsx  |  11 +\n frontend/src/features/auth/BillingPage.tsx         | 213 ++++++++-\n .../src/features/auth/WorkspaceSettingsPage.tsx    |  40 +-\n .../auth/components/BillingBlockedScreen.tsx       | 148 ++++++\n frontend/src/types/auth.ts                         |   7 +\n 29 files changed, 1591 insertions(+), 220 deletions(-)\n",
+      "confidence_label": "Direct Git Pickaxe (Commit f4e6aa1)",
+      "author": "MustafaPinjari",
+      "timestamp": "2026-07-08 23:58:21 +0530",
+      "is_verified": true
+    }
+  },
+  "4_graph": {
+    "status_code": 200,
+    "node_count": 7,
+    "edge_count": 1,
+    "missing_endpoints": []
+  },
+  "5_impact": {
+    "status_code": 200,
+    "overall_risk": "HIGH",
+    "callers_count": 20,
+    "tests_count": 11,
+    "commit_count": 10
+  },
+  "6_offline": {
+    "is_connected": false,
+    "message": "Could not create Neo4j driver for bolt://127.0.0.1:19999. Operating in offline memory mode.",
+    "is_live_graph": null
+  }
+}

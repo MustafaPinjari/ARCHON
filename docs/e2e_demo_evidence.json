@@ -1,0 +1,65 @@
+{
+  "step1_health": {
+    "status": "healthy",
+    "version": "2.0.0",
+    "service": "ARCHON \u2014 The Engineering Memory Engine",
+    "security": {
+      "zero_code_execution": true,
+      "secret_scrubber_active": true,
+      "offline_boundary_enforced": true
+    },
+    "neo4j": {
+      "is_connected": true,
+      "uri": "neo4j+ssc://a567c77c.databases.neo4j.io",
+      "message": "Neo4j connection verified and active (Neo4j Aura Cloud).",
+      "database": "a567c77c"
+    }
+  },
+  "step2_validate": {
+    "is_valid": true,
+    "resolved_path": "C:\\Users\\mustafa\\Desktop\\BAHub",
+    "is_git_repo": true,
+    "git_branch": "main",
+    "error_message": null,
+    "scanned_files_count": 464
+  },
+  "step3_index": {
+    "repo_id": "default-repo",
+    "resolved_path": "C:\\Users\\mustafa\\Desktop\\BAHub",
+    "files_indexed": 464,
+    "symbols_indexed": 1352,
+    "calls_indexed": 6942,
+    "neo4j_status": {
+      "status": "success",
+      "repo_id": "default-repo",
+      "message": "Neo4j Knowledge Graph successfully ingested and linked."
+    }
+  },
+  "step4_investigate": {
+    "pillar_counts": {
+      "Temporal Intent (Git History)": 4,
+      "Architectural Contract (Docstrings & Code)": 1,
+      "Verification Mesh (Test Evidence)": 8,
+      "Blast Radius (Structural Dependencies)": 8
+    },
+    "evidence_count": 21,
+    "synthesis_length": 1445
+  },
+  "step5_graph": {
+    "filtered_nodes": 7,
+    "filtered_edges": 1,
+    "global_nodes": 60,
+    "global_edges": 12
+  },
+  "step6_impact": {
+    "overall_risk": "HIGH",
+    "affected_components_count": 20,
+    "tests_to_run_count": 11,
+    "historical_commit_count": 10
+  },
+  "step7_offline": {
+    "detected_offline": true,
+    "reported_falsely": false,
+    "message": "Could not create Neo4j driver for bolt://127.0.0.1:19999. Operating in offline memory mode."
+  }
+}
